@@ -1326,6 +1326,46 @@ function renderOutages() {
   );
 }
 
+// Short gaps are always recorded, but only listed when the page's address asks for them with ?gaps.
+const SHOW_GAPS = new URLSearchParams(location.search).has('gaps');
+
+/** Short gaps: a few checks in a row without a clear answer. Too short to be an outage, but the count stood still. */
+function renderGaps() {
+  const DAY = 86_400_000;
+  $('gaps-block').hidden = !SHOW_GAPS;
+  if (!SHOW_GAPS) return;
+  const all = stats.servers.flatMap((server) => (server.allTime.gaps ?? []).map((gap) => ({ ...gap, server }))).sort((a, b) => b.from - a.from);
+  if (!all.length) {
+    $('gaps').replaceChildren(html('li', 'note', 'None recorded yet.'));
+    return;
+  }
+  const said = (gap) => {
+    if (gap.kind === 'limited') return 'asked too often, no answer';
+    if (gap.kind === 'offline') return gap.detail ? `status said "${gap.detail}"` : 'status said not live';
+    return gap.detail ? `no answer (${gap.detail})` : 'no answer';
+  };
+  // One line per server on how often it happened in the last day, then the latest ones.
+  const counts = stats.servers
+    .map((server) => ({ server, count: (server.allTime.gaps ?? []).filter((gap) => gap.from > stats.now - DAY).length }))
+    .filter((entry) => entry.count)
+    .map((entry) => {
+      const item = html('li');
+      const what = html('span', 'state');
+      what.append(key(entry.server.id), ` ${entry.server.name}`);
+      item.append(what, html('span', 'note', `${entry.count} short ${entry.count === 1 ? 'gap' : 'gaps'} in the last 24 hours`));
+      return item;
+    });
+  const latest = all.slice(0, 10).map((gap) => {
+    const item = html('li');
+    const what = html('span', 'state');
+    what.append(stateIcon('unknown'), `${gap.server.name}: ${said(gap)}`);
+    const checks = `${gap.checks} ${gap.checks === 1 ? 'check' : 'checks'}`;
+    item.append(what, html('span', 'note', `${dayTimeFmt.format(gap.from)}, ${gap.ongoing ? 'still going, ' : ''}${checks} in a row`));
+    return item;
+  });
+  $('gaps').replaceChildren(...counts, ...latest);
+}
+
 function renderAbout() {
   // One column per server, so the differences read across.
   const described = stats.servers.filter((server) => server.about?.glance);
@@ -1458,6 +1498,7 @@ function renderRecorded() {
   renderHours();
   renderRecords();
   renderOutages();
+  renderGaps();
 }
 
 function renderAll() {
@@ -1647,15 +1688,30 @@ startRain();
 {
   const root = document.documentElement;
   const button = $('theme-switch');
-  const show = (theme) => {
-    root.dataset.theme = theme;
-    button.textContent = theme === 'light' ? 'Dark mode' : 'Light mode';
+  /** Everything drawn in script takes the new colors: the charts, and the falling code starts over. */
+  const repaint = () => {
     paint();
-    // The falling code starts over on the new background.
     const rain = $('rain');
     rain.getContext('2d').clearRect(0, 0, rain.width, rain.height);
     if (stats) renderAll();
   };
+  const show = (theme) => {
+    root.dataset.theme = theme;
+    button.textContent = theme === 'light' ? 'Dark mode' : 'Light mode';
+    repaint();
+  };
+  // The page's own color: the Matrix's green, or the cold blue of the world outside it.
+  const tint = $('accent-switch');
+  const name = () => (root.dataset.accent === 'blue' ? 'Green' : 'Blue');
+  tint.textContent = name();
+  tint.addEventListener('click', () => {
+    const next = root.dataset.accent === 'blue' ? 'green' : 'blue';
+    if (next === 'blue') root.dataset.accent = 'blue';
+    else delete root.dataset.accent;
+    document.cookie = `accent=${next}; max-age=31536000; path=/; SameSite=Lax`;
+    tint.textContent = name();
+    repaint();
+  });
   button.textContent = root.dataset.theme === 'light' ? 'Dark mode' : 'Light mode';
   button.addEventListener('click', () => {
     const next = root.dataset.theme === 'light' ? 'dark' : 'light';

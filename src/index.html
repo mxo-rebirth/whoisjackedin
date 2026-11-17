@@ -24,6 +24,7 @@
   :root {
     color-scheme: dark;
     --page: #030604;
+    --page-2: #040705;
     --surface: #08100b;
     --surface-2: #0b1810;
     --ink: #e6f7e9;
@@ -71,6 +72,7 @@
   :root[data-theme="light"] {
     color-scheme: light;
     --page: #eef3ee;
+    --page-2: #edf2ed;
     --surface: #ffffff;
     --surface-2: #f3f8f4;
     --ink: #0d2014;
@@ -101,10 +103,61 @@
     --rain-head: #0b8a47;
     --rain-opacity: 0.6;
   }
+  /* The blue variant: the cold blue of the world outside the Matrix in place of the green, chosen with the
+     switch beside the theme's. Rejacked's own color turns green here, so data is never the page's blue. */
+  :root[data-accent="blue"]:not([data-theme="light"]) {
+    --page: #030509;
+    --page-2: #04060a;
+    --surface: #080c12;
+    --surface-2: #0b121b;
+    --ink: #e6eef7;
+    --ink-2: #a3b7c9;
+    --muted: #6f869a;
+    --grid: #111c27;
+    --axis: #1d2e3f;
+    --border: rgba(96, 170, 255, 0.18);
+    --accent: #5aa9ff;
+    --accent-dim: #2f7fd6;
+    --s1: #34893c;
+    --card-top: rgba(11, 18, 27, 0.94);
+    --card-bottom: rgba(8, 12, 18, 0.94);
+    --glow: rgba(90, 169, 255, 0.45);
+    --control: rgba(8, 12, 18, 0.9);
+    --on-accent: #03101f;
+    --thead: #0a0f16;
+    --inset: rgba(3, 5, 8, 0.45);
+    --tip: #0d151f;
+    --tip-border: rgba(96, 170, 255, 0.35);
+    --rain: #2a6fb5;
+    --rain-head: #cfe4ff;
+  }
+  :root[data-theme="light"][data-accent="blue"] {
+    --page: #eef1f5;
+    --page-2: #edf0f4;
+    --surface-2: #f3f6fa;
+    --ink: #0d1626;
+    --ink-2: #3a4a60;
+    --muted: #61728a;
+    --grid: #e0e6ee;
+    --axis: #b6c2d1;
+    --border: rgba(20, 80, 160, 0.26);
+    --accent: #1463c4;
+    --accent-dim: #2c5f9c;
+    --s1: #157123;
+    --card-bottom: rgba(249, 250, 252, 0.96);
+    --thead: #f1f4f8;
+    --inset: rgba(20, 80, 160, 0.06);
+    --tip-border: rgba(20, 80, 160, 0.4);
+    --rain: #8fb4e0;
+    --rain-head: #1463c4;
+  }
   * { box-sizing: border-box; }
-  /* Nothing may make the page scroll sideways. */
-  html { background: var(--page); overflow-x: clip; }
-  body { overflow-x: clip; margin: 0; background: var(--page); color: var(--ink); font: var(--t-body)/1.55 var(--mono); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; }
+  /* Nothing may make the page scroll sideways.
+     The page's color is a fade between two shades too close to tell apart. A browser fills a strip of plain
+     color directly and draws a strip with anything in it as a picture, and on some screens the two come out
+     as different shades, which showed as a band behind the footer. With the fade no strip is plain. */
+  html { background: linear-gradient(var(--page), var(--page-2)) var(--page); overflow-x: clip; }
+  body { overflow-x: clip; margin: 0; color: var(--ink); font: var(--t-body)/1.55 var(--mono); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; }
   #rain {
     position: absolute; top: 0; left: 0; width: 100%; height: 380px; opacity: var(--rain-opacity); pointer-events: none;
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 100%);
@@ -301,6 +354,9 @@
   .strip-key i { width: 10px; height: 10px; border-radius: 1px; background: var(--grid); }
 
   .rows { list-style: none; margin: 0; padding: 0; }
+  /* Short gaps sit under the outages, set apart by a rule. */
+  .gaps-title { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--grid); }
+  .gaps-note { margin: 4px 0 12px; max-width: 78ch; }
   .rows li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); }
   .rows li:first-child { padding-top: 0; }
   .rows li:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -344,7 +400,6 @@
   footer { margin-top: 34px; display: flex; align-items: stretch; justify-content: space-between; gap: 24px; color: var(--muted); font-size: var(--t-note); }
   .foot-text { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; padding-bottom: 10px; }
   .foot-facts { margin-top: 12px; color: var(--ink-2); }
-  .foot-author { color: var(--ink-2); }
   footer p { margin: 2px 0; padding-left: 2ch; text-indent: -2ch; }
   footer p::before { content: '> '; color: var(--accent-dim); }
 
@@ -392,6 +447,7 @@
       </div>
       <div class="toolbar-side">
         <span class="note" id="updated" aria-live="polite">Jacking in…</span>
+        <button type="button" class="pill" id="accent-switch">Blue</button>
         <button type="button" class="pill" id="theme-switch">Light mode</button>
       </div>
     </div>
@@ -549,6 +605,11 @@
     <h2><span class="title">Outages</span> <span class="note">counted after 15 minutes without a live answer</span></h2>
     <section class="card">
       <ul class="rows" id="outages"><li class="note">Nothing loaded yet.</li></ul>
+      <div id="gaps-block" hidden>
+        <div class="eyebrow gaps-title">Short gaps</div>
+        <p class="note gaps-note">Moments when a server's status page gave no clear answer for a few checks. The count stays at the last known number during these, so a peak in that moment is missed.</p>
+        <ul class="rows" id="gaps"></ul>
+      </div>
     </section>
   </div>
 
@@ -568,7 +629,6 @@
       <div class="foot-notes">
         <div id="footer"></div>
         <div class="foot-facts" id="page-facts" hidden></div>
-        <p class="foot-author">made by hesitancy9996</p>
       </div>
     </div>
   </footer>

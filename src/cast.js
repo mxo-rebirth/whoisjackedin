@@ -1,7 +1,7 @@
 // The cast: the game's art. The 3D characters, their styles, Flood's commands and the icons beside the
 // headings. None of this is part of the public page. The site sends this script only to a visitor whose link carried the key (see lib/cast.js), and the
 // script then asks for the models with that same key.
-import { act, bust, figureReady, useKey } from './bust.js';
+import { act, bust, figureReady, useKey, useTone } from './bust.js';
 
 // The key came in this script's own address. It is taken off the page's address at once.
 const key = new URL(document.currentScript.src).searchParams.get('k');
@@ -23,6 +23,10 @@ const html = (tag, className, text) => {
 };
 
 document.documentElement.dataset.cast = 'on';
+// The characters are drawn in the page's own color, and change with it.
+const matchTone = () => useTone(document.documentElement.dataset.accent === 'blue' ? 'blue' : 'green');
+matchTone();
+new MutationObserver(matchTone).observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent'] });
 document.head.append(html('style', '', CAST_CSS));
 
 // Cryptos, by the title: the exile program who decides who gets in.

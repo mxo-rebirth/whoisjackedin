@@ -16,6 +16,17 @@ const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // scanlines, with no skin or cloth colors. 'game' shows them with the game's own colors.
 const LOOK = 'code';
 
+// The color the characters are drawn in: the darkest tone, the brightest and the glowing edge.
+const TONES = {
+  green: { dark: [0, 0.07, 0.03], bright: [0.5, 1, 0.68], rim: [0.25, 0.9, 0.5] },
+  blue: { dark: [0, 0.035, 0.08], bright: [0.56, 0.8, 1], rim: [0.3, 0.62, 1] },
+};
+let tone = TONES.green;
+/** Draws the characters in the page's color: 'green' or 'blue'. */
+export function useTone(name) {
+  tone = TONES[name] ?? TONES.green;
+}
+
 // The models are handed out only with the key from the visitor's link. The page gives it here first.
 let key = '';
 export function useKey(given) {
@@ -48,6 +59,9 @@ precision mediump float;
 uniform sampler2D uTex;
 uniform float uCut;
 uniform float uCode;
+uniform vec3 uDark;
+uniform vec3 uBright;
+uniform vec3 uRim;
 varying vec3 vNrm;
 varying vec2 vUv;
 void main() {
@@ -68,10 +82,10 @@ void main() {
   float rim = pow(1.0 - max(n.z, 0.0), 2.0);
   vec3 lit = color.rgb * (0.46 + 0.72 * key + 0.2 * fill) + vec3(0.04, 0.16, 0.09) * rim * 0.35;
   if (uCode > 0.5) {
-    // Only how light or dark a spot is survives. It is redrawn in green, with a glowing edge and scanlines.
+    // Only how light or dark a spot is survives. It is redrawn in the page's color, with a glowing edge and scanlines.
     float tone = dot(color.rgb, vec3(0.3, 0.59, 0.11)) * (0.4 + 0.8 * key + 0.25 * fill);
-    lit = mix(vec3(0.0, 0.07, 0.03), vec3(0.5, 1.0, 0.68), smoothstep(0.02, 0.8, tone));
-    lit += vec3(0.25, 0.9, 0.5) * rim * 0.45;
+    lit = mix(uDark, uBright, smoothstep(0.02, 0.8, tone));
+    lit += uRim * rim * 0.45;
     lit *= 0.8 + 0.2 * step(0.5, fract(gl_FragCoord.y / 3.0));
   }
   gl_FragColor = vec4(lit * see, see);
@@ -358,6 +372,9 @@ function draw(model, seconds) {
   gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uCamera'), false, camera);
   gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uTurn'), false, turn);
   gl.uniform1f(gl.getUniformLocation(program, 'uCode'), LOOK === 'code' ? 1 : 0);
+  gl.uniform3fv(gl.getUniformLocation(program, 'uDark'), tone.dark);
+  gl.uniform3fv(gl.getUniformLocation(program, 'uBright'), tone.bright);
+  gl.uniform3fv(gl.getUniformLocation(program, 'uRim'), tone.rim);
   gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uBone[0]'), false, model.body ? boneMatrices(model.body, poseNow(model.body, seconds)) : RESTING);
   const [aBones, aWeights] = ['aBones', 'aWeights'].map((name) => gl.getAttribLocation(program, name));
   const wide = model.body ? 64 : 32;
