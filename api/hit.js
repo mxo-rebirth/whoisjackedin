@@ -8,9 +8,13 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
-  // Only the page itself reports visits. Browsers say where a request comes from.
-  const site = req.headers['sec-fetch-site'];
-  if (!site || site === 'same-origin') {
+  // Only the page itself reports visits. A browser says where a request comes from, twice over. A script
+  // that does not say so is answered the same way and not counted.
+  let fromPage = false;
+  try {
+    fromPage = req.headers['sec-fetch-site'] === 'same-origin' && new URL(req.headers.origin).host === req.headers.host;
+  } catch {}
+  if (fromPage) {
     try {
       await recordVisit({
         ip: String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim(),

@@ -14,6 +14,7 @@ process.env.MXO_DATA_DIR ??= path.join(ROOT, 'data', 'kv');
 
 const { SAMPLE_MS, buildStats, collect } = await import('./lib/core.js');
 const { renderPage } = await import('./lib/page.js');
+const { castFile, castOf, hasCastKey, withCast } = await import('./lib/cast.js');
 
 // The same security headers as on Vercel, so a page that works here works there.
 const config = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
@@ -44,7 +45,10 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {
         console.warn(err.message);
       }
-      res.writeHead(200, PAGE_HEADERS).end(body);
+      // As on the site: with the key in the address, or in the cookie a good link left, the page comes with
+      // the game art's script.
+      const { key, cookie } = castOf(url.searchParams.get('rsi'), req.headers.cookie, { secure: false });
+      res.writeHead(200, cookie ? { ...PAGE_HEADERS, 'set-cookie': cookie } : PAGE_HEADERS).end(key ? withCast(body, key) : body);
     } catch {
       res.writeHead(500, { 'content-type': 'text/plain' }).end('public/page.html is missing. Run "npm run build" first.');
     }
@@ -59,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   // Only plain file names inside public/assets are served.
-  const asset = /^\/assets\/((?:icons\/|models\/)?[\w.-]+)$/.exec(url.pathname)?.[1];
+  const asset = /^\/assets\/((?:icons\/)?[\w.-]+)$/.exec(url.pathname)?.[1];
   if (asset && ASSET_TYPES[path.extname(asset)]) {
     try {
       const body = await readFile(path.join(PUBLIC, 'assets', asset));
@@ -67,6 +71,14 @@ const server = http.createServer(async (req, res) => {
     } catch {
       res.writeHead(404).end();
     }
+    return;
+  }
+  // The 3D characters' files, only with the key. Here the key is "local" (see lib/cast.js).
+  if (url.pathname === '/api/model') {
+    const file = castFile(url.searchParams.get('f'));
+    const body = file && hasCastKey(url.searchParams.get('k')) ? await readFile(path.join(ROOT, file.path)).catch(() => null) : null;
+    if (body) res.writeHead(200, { 'content-type': file.type, 'cache-control': 'no-cache' }).end(body);
+    else res.writeHead(404).end();
     return;
   }
   if (url.pathname === '/api/stats') {

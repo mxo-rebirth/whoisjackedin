@@ -1,5 +1,10 @@
 // Serves the page itself, with the current numbers already in it. Cached for a minute.
+// A request that carries the key gets the page with the game art's script added (see lib/cast.js). The key
+// comes in the link (?rsi=...) or in the cookie a good link leaves behind. Requests with that cookie reach
+// this function by their own rewrite in vercel.json, so the cached public page never answers them, and
+// the private answer is never cached, so it cannot reach anyone else.
 import { readFile } from 'node:fs/promises';
+import { castOf, withCast } from '../lib/cast.js';
 import { buildStats } from '../lib/core.js';
 import { renderPage } from '../lib/page.js';
 
@@ -32,7 +37,10 @@ export default async function handler(req, res) {
     // Without numbers the page still works: its script fetches them.
     console.error(err);
   }
+  const { key, cookie } = castOf(typeof req.query?.rsi === 'string' ? req.query.rsi : null, req.headers.cookie);
+  if (cookie) res.setHeader('set-cookie', cookie);
   res.setHeader('content-type', 'text/html; charset=utf-8');
-  res.setHeader('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
-  res.status(200).send(body);
+  // Anything that depends on the visitor, or sets a cookie, is for that visitor only.
+  res.setHeader('cache-control', key || cookie || req.query?.saved ? 'private, no-store' : 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+  res.status(200).send(key ? withCast(body, key) : body);
 }

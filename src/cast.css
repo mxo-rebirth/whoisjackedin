@@ -1,0 +1,62 @@
+/* Styles for the game's art: the 3D characters and the icons. They travel with the script that brings them, not with the public page. */
+
+/* A character fades in once it has loaded. One that is already loaded, on a card drawn again, appears at once. */
+.face, .figure canvas { opacity: 0; transition: opacity 0.9s ease-out; }
+.face.in, .figure canvas.in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .face, .figure canvas { transition: none; } }
+
+/* Icons from the game, 32 pixels square, beside each heading. Shown at whole multiples so the pixels stay sharp. */
+.glyph { display: block; width: 32px; height: 32px; border-radius: 3px; image-rendering: pixelated; }
+:root[data-cast] h2 { grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; }
+h2 .glyph { grid-row: 1 / span 2; }
+:root[data-cast] h2 .title { align-self: end; }
+:root[data-cast] h2 .title::before { content: none; }
+:root[data-cast] h2 .note { grid-column: 2; align-self: start; }
+:root[data-cast] h2:has(.note:empty) .title { grid-row: 1 / span 2; align-self: center; }
+:root[data-cast] h2 .modes { grid-column: 2; }
+
+.face { flex: none; display: block; }
+:root[data-theme="light"] .face { filter: drop-shadow(0 1px 4px rgba(13, 32, 20, 0.4)); }
+.brand .face { width: 104px; height: 104px; margin-left: -6px; }
+.server-head .face { width: 104px; height: 104px; margin-left: -8px; }
+.about .server-head .face { width: 92px; height: 92px; }
+
+/* Tyndall stands on the rule under the story, as Cryptos does under the title. The closing line goes back under the story. */
+:root[data-cast] .intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 0; }
+:root[data-cast] .intro-text { display: block; max-width: 78ch; padding: 18px 0 20px; }
+:root[data-cast] .intro .intro-line { align-self: auto; justify-self: auto; max-width: none; margin: 14px 0 0; font-size: var(--t-title); line-height: 1.3; text-align: left; }
+.intro .face { width: 196px; height: 196px; margin-right: 12px; }
+@media (max-width: 1000px) { .intro .face { width: 148px; height: 148px; margin-right: 0; } }
+
+/* Room above the footer for a raised arm or a jump. */
+:root[data-cast] footer { margin-top: 150px; }
+/* The commands for Flood sit in the middle of the room above the notes. */
+.console { max-width: 62ch; margin-block: auto; padding: 12px 0 28px; }
+.console-title { font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--ink-2); }
+.commands { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.commands .pill { padding: 2px 9px; }
+/* The standing figure beside the footer. */
+.figure { position: relative; flex: none; align-self: flex-end; display: block; width: 300px; height: 600px; margin-bottom: -40px; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.figure.held { cursor: grabbing; }
+/* The picture is wider and taller than his place on the page, so raised arms are not cut off. */
+.figure canvas { position: absolute; left: -25%; bottom: 0; width: 150%; height: 125%; pointer-events: none; }
+/* A line to type emotes on, like the game's chat. */
+.say { display: flex; align-items: baseline; gap: 1ch; margin-top: 8px; color: var(--accent-dim); }
+.say input { flex: 1; min-width: 0; max-width: 26ch; padding: 3px 0; font: inherit; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; outline: none; caret-color: var(--accent); }
+.say input::placeholder { color: var(--muted); opacity: 0.7; }
+.say input:focus { border-bottom-color: var(--accent); }
+.say-reply { min-height: 1.55em; margin: 6px 0 0 2ch; color: var(--ink); }
+
+@media (max-width: 700px) {
+  /* On a narrow screen the subtitle takes two lines. Cryptos is as tall as the title and subtitle together, so his head lines up with the title. */
+  .brand .face { width: 96px; height: 96px; margin-left: 0; }
+  :root[data-cast] .brand { gap: 10px; }
+  .intro .face { display: none; }
+  .server-head .face { width: 92px; height: 92px; }
+  :root[data-cast] footer { margin-top: 34px; }
+  /* On a phone the notes come first, then the commands right above Flood. */
+  :root[data-cast] .foot-text { display: contents; }
+  .foot-notes { order: 1; }
+  .console { order: 2; margin-top: 22px; padding-bottom: 0; }
+  .figure { order: 3; width: 220px; height: 440px; align-self: center; margin-top: 60px; margin-bottom: -30px; }
+}

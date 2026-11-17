@@ -12,8 +12,24 @@ const ABOUT_SLOT = '<section class="about" id="about"></section>';
 
 await rm(out, { recursive: true, force: true });
 await mkdir(path.join(out, 'assets'), { recursive: true });
-await cp(path.join(root, 'src', 'icons'), path.join(out, 'assets', 'icons'), { recursive: true });
-await cp(path.join(root, 'src', 'models'), path.join(out, 'assets', 'models'), { recursive: true });
+// Only the link-preview picture is public. The game's icons in src/icons are handed out with the key.
+await mkdir(path.join(out, 'assets', 'icons'), { recursive: true });
+await cp(path.join(root, 'src', 'icons', 'og.jpg'), path.join(out, 'assets', 'icons', 'og.jpg'));
+// The 3D characters are not part of the public page: no models, script or styles for them go into public/.
+// Their script is built into private/, which only api/model.js reads, and only for a visitor with the key.
+const hidden = path.join(root, 'private');
+await rm(hidden, { recursive: true, force: true });
+await mkdir(hidden, { recursive: true });
+await build({
+  entryPoints: [path.join(root, 'src', 'cast.js')],
+  outfile: path.join(hidden, 'cast.js'),
+  bundle: true,
+  minify: true,
+  format: 'iife',
+  target: 'es2022',
+  legalComments: 'none',
+  define: { CAST_CSS: JSON.stringify((await transform(await readFile(path.join(root, 'src', 'cast.css'), 'utf8'), { loader: 'css', minify: true, legalComments: 'none' })).code.trim()) },
+});
 // The theme script is tiny and runs before the page is drawn.
 await writeFile(path.join(out, 'assets', 'theme.js'), (await transform(await readFile(path.join(root, 'src', 'theme.js'), 'utf8'), { minify: true })).code);
 
@@ -60,7 +76,9 @@ const about = SERVERS.filter((server) => server.about)
     return `<div class="card" style="--c: var(${tones[server.id] ?? '--muted'})"><div class="server-head"><div class="server-titles"><h3>${text(server.name)}</h3></div></div><div class="prose">${text(server.about.summary)}</div><dl>${facts}</dl><div class="links">${links}</div></div>`;
   })
   .join('');
-const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://whoisjackedin.com';
+// The page's own address, for search engines and link previews. The project answers on more than one name;
+// this is the one to show.
+const site = process.env.MXO_SITE ?? 'https://whoisjackedin.com';
 const fill = (html) => html.replace(ABOUT_SLOT, `<section class="about" id="about">${about}</section>`).replaceAll('__SITE__', site);
 
 const squeeze = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/\n\s*/g, '').replace(/>\s+</g, '><');

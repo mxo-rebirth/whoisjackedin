@@ -16,6 +16,13 @@ const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // scanlines, with no skin or cloth colors. 'game' shows them with the game's own colors.
 const LOOK = 'code';
 
+// The models are handed out only with the key from the visitor's link. The page gives it here first.
+let key = '';
+export function useKey(given) {
+  key = given;
+}
+const fileUrl = (file) => `/api/model?f=${encodeURIComponent(file)}&k=${encodeURIComponent(key)}`;
+
 const BONES = 22;
 const VERTEX = `
 attribute vec3 aPos;
@@ -111,7 +118,7 @@ const ROUNDS = { dance: 3 }; // how many times a move that loops is played when 
 
 /** Reads the file of moves: a JSON header, then 16-bit numbers. Each track is its key times, then its values. */
 async function loadMoves(file) {
-  const data = await (await fetch(`/assets/models/${file}`)).arrayBuffer();
+  const data = await (await fetch(fileUrl(file))).arrayBuffer();
   const headerLength = new Uint32Array(data, 0, 1)[0];
   const header = JSON.parse(new TextDecoder().decode(new Uint8Array(data, 4, headerLength)));
   const numbers = new Int16Array(data, 4 + headerLength);
@@ -245,7 +252,7 @@ function setup() {
   return true;
 }
 
-function texture(file) {
+function texture(file, arrived) {
   const made = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, made);
   // A plain skin tone stands in until the picture arrives.
@@ -258,13 +265,18 @@ function texture(file) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, picture);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    arrived();
   };
-  picture.src = `/assets/models/${file}`;
+  // A picture that fails must not keep the character waiting.
+  picture.onerror = arrived;
+  picture.src = fileUrl(file);
   return made;
 }
 
 async function load(name, model) {
-  const data = await (await fetch(`/assets/models/${name}.bin`)).arrayBuffer();
+  const answer = await fetch(fileUrl(`${name}.bin`));
+  if (!answer.ok) throw new Error(`the site answered ${answer.status}`);
+  const data = await answer.arrayBuffer();
   const headerLength = new Uint32Array(data, 0, 1)[0];
   const header = JSON.parse(new TextDecoder().decode(new Uint8Array(data, 4, headerLength)));
   const base = 4 + headerLength;
@@ -276,7 +288,11 @@ async function load(name, model) {
     const triangles = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangles);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data, base + part.shorts, part.indices), gl.STATIC_DRAW);
-    if (!textures.has(part.tex)) textures.set(part.tex, texture(part.tex));
+    if (!textures.has(part.tex)) {
+      // The character is shown once all its pictures are in, so it fades in whole instead of in patches.
+      model.waiting += 1;
+      textures.set(part.tex, texture(part.tex, () => (model.waiting -= 1)));
+    }
     return { points, triangles, count: part.indices, texture: textures.get(part.tex), cut: part.alpha ? 0.08 : 0 };
   });
   // Solid parts first, then hair and glasses.
@@ -392,6 +408,8 @@ function frame(now) {
       const [width, height] = model.drawn;
       pen.clearRect(0, 0, canvas.width, canvas.height);
       pen.drawImage(gl.canvas, 0, gl.canvas.height - height, width, height, 0, 0, canvas.width, canvas.height);
+      // Drawn for the first time, with everything loaded: the page's styles fade it in from here.
+      if (!model.waiting) canvas.classList.add('in');
     }
   }
 }
@@ -400,7 +418,7 @@ function frame(now) {
 function modelFor(name) {
   let model = models.get(name);
   if (model) return model;
-  model = { shows: new Set(), ready: false, parts: [], pivot: [0, 78, 3], phase: models.size * 1.7, loading: Promise.resolve() };
+  model = { shows: new Set(), ready: false, waiting: 0, parts: [], pivot: [0, 78, 3], phase: models.size * 1.7, loading: Promise.resolve() };
   models.set(name, model);
   if (!failed) {
     try {
@@ -428,12 +446,14 @@ export function bust(name, title, { whole: wholeFigure = false, watches = false 
   canvas.setAttribute('aria-hidden', 'true');
   const model = modelFor(name);
   model.shows.add(canvas);
+  // A character that is already loaded appears at once. Only its first arrival fades in.
+  if (model.ready && !model.waiting) canvas.classList.add('in');
   if (!running) {
     running = true;
     requestAnimationFrame(frame);
   }
   if (!wholeFigure) {
-    canvas.className = 'face';
+    canvas.classList.add('face');
     if (title) canvas.title = title;
     if (watches) model.watcher = canvas;
     return canvas;

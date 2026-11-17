@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node build.mjs && node server.js",
     "build": "node build.mjs",
-    "visitors": "node scripts/visitors.mjs"
+    "visitors": "node scripts/visitors.mjs",
+    "cast-link": "node scripts/cast-link.mjs"
   },
   "engines": {
     "node": "26.x"

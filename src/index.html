@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <script src="/assets/theme.js"></script>
-<title>MxO server stats</title>
+<title>MxO Server Stats: Matrix Online player counts, live</title>
 <meta name="description" content="Unofficial live player counts for the Matrix Online private servers run by the community: Rejacked, MxO Revived and MxOEmu.">
 <link rel="canonical" href="__SITE__/">
 <meta name="theme-color" content="#030604">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MxO server stats">
-<meta property="og:title" content="MxO server stats: who is jacked in">
+<meta property="og:title" content="MxO Server Stats: Matrix Online player counts, live">
 <meta property="og:description" content="Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived and MxOEmu.">
 <meta property="og:url" content="__SITE__/">
 <meta property="og:image" content="__SITE__/assets/icons/og.jpg">
@@ -101,10 +101,8 @@
     --rain-head: #0b8a47;
     --rain-opacity: 0.6;
   }
-  /* On a pale page the busts need an edge of their own. */
-  :root[data-theme="light"] .face { filter: drop-shadow(0 1px 4px rgba(13, 32, 20, 0.4)); }
   * { box-sizing: border-box; }
-  /* The standing figure's picture is wider than its place, so it may stick out past a narrow window. */
+  /* Nothing may make the page scroll sideways. */
   html { background: var(--page); overflow-x: clip; }
   body { overflow-x: clip; margin: 0; background: var(--page); color: var(--ink); font: var(--t-body)/1.55 var(--mono); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; }
   #rain {
@@ -118,13 +116,17 @@
   a:hover { color: var(--accent); }
 
   /* The story in three lines, under the title. */
-  .intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
-  .intro-text { max-width: 78ch; padding: 18px 0 20px; }
-  /* Tyndall stands on the rule under the story, as Cryptos does under the title. */
-  .intro .face { width: 196px; height: 196px; margin-right: 12px; }
-  @media (max-width: 1000px) { .intro .face { width: 148px; height: 148px; margin-right: 0; } }
+  .intro { margin-bottom: 14px; padding: 18px 0 20px; border-bottom: 1px solid var(--border); }
+  .intro-text { max-width: 78ch; }
   .intro p { margin: 0 0 8px; font-size: var(--t-lead); line-height: 1.6; color: var(--ink-2); text-wrap: balance; }
   .intro .intro-line { margin: 14px 0 0; font: 600 var(--t-title)/1.3 var(--mono); letter-spacing: 0.02em; color: var(--accent); }
+  @media (min-width: 701px) {
+    /* The closing line of the story stands by itself on the right. */
+    .intro { display: grid; grid-template-columns: minmax(0, 64ch) minmax(0, 1fr); gap: 0 48px; }
+    .intro-text { display: contents; }
+    .intro-text p { grid-column: 1; }
+    .intro .intro-line { grid-column: 2; grid-row: 1 / span 2; align-self: end; justify-self: end; max-width: 10em; margin: 0 0 8px; font-size: 26px; line-height: 1.25; text-align: right; text-wrap: balance; }
+  }
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 12px; }
   .toolbar-side { display: flex; align-items: center; gap: 12px; }
   .pill { font: inherit; font-size: var(--t-note); color: var(--ink-2); background: var(--control); border: 1px solid var(--border); border-radius: 4px; padding: 4px 11px; cursor: pointer; }
@@ -137,22 +139,16 @@
   .note { color: var(--muted); font-size: var(--t-note); }
 
   /* A heading is a game icon with the title beside it and a note under the title. */
-  h2 { margin: 36px 0 12px; display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: center; font-size: var(--t-lead); font-weight: 600; letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
-  h2 .glyph { grid-row: 1 / span 2; }
-  h2 .title { align-self: end; line-height: 1.25; }
-  h2 .note { grid-column: 2; align-self: start; line-height: 1.4; }
+  h2 { margin: 36px 0 12px; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; font-size: var(--t-lead); font-weight: 600; letter-spacing: var(--track); text-transform: uppercase; color: var(--accent); }
+  h2 .title { line-height: 1.25; }
+  /* The same two strokes as in the page's title. */
+  h2 .title::before { content: '// '; color: var(--accent-dim); }
+  h2 .note { line-height: 1.4; }
   h2 .note:empty { display: none; }
-  h2:has(.note:empty) .title { grid-row: 1 / span 2; align-self: center; }
-  h2 .modes { grid-column: 2; justify-self: start; margin-top: 6px; }
-  /* Icons from the game, 32 pixels square. Shown at whole multiples so the pixels stay sharp. */
-  .glyph { display: block; width: 32px; height: 32px; border-radius: 3px; image-rendering: pixelated; }
-  /* The 3D busts. Each one stands on a line, like a portrait behind a nameplate. */
-  .face { flex: none; display: block; }
+  h2 .modes { justify-self: start; margin-top: 6px; }
   .brand { display: flex; align-items: flex-end; gap: 14px; border-bottom: 1px solid var(--border); }
-  .brand .face { width: 104px; height: 104px; margin-left: -6px; }
   .brand-text { min-width: 0; align-self: center; padding: 8px 0 12px; }
   .about .server-head { margin: -8px 0 14px; }
-  .about .server-head .face { width: 92px; height: 92px; }
   h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
   .eyebrow { font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--ink-2); }
 
@@ -184,7 +180,6 @@
   .servers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
   .servers .card { margin-top: 0; border-top: 2px solid var(--c); padding-top: 14px; }
   .server-head { display: flex; align-items: flex-end; gap: 14px; margin: -6px 0 12px; border-bottom: 1px solid var(--grid); }
-  .server-head .face { width: 104px; height: 104px; margin-left: -8px; }
   .server-titles { min-width: 0; align-self: center; padding: 6px 0 10px; }
   .server-titles .status { margin-bottom: 6px; }
   .server-titles a, .server-titles h3 { display: block; margin: 0; font-size: var(--t-title); font-weight: 600; line-height: 1.2; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -346,26 +341,10 @@
   .links a { padding: 4px 11px; font-size: var(--t-note); text-decoration: none; border: 1px solid var(--border); border-radius: 3px; background: var(--inset); }
   .links a:hover { border-color: var(--accent); }
 
-  footer { margin-top: 150px; display: flex; align-items: stretch; justify-content: space-between; gap: 24px; color: var(--muted); font-size: var(--t-note); }
+  footer { margin-top: 34px; display: flex; align-items: stretch; justify-content: space-between; gap: 24px; color: var(--muted); font-size: var(--t-note); }
   .foot-text { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; padding-bottom: 10px; }
-  /* The commands for Flood sit in the middle of the room above the notes. */
-  .console { max-width: 62ch; margin-block: auto; padding: 12px 0 28px; }
-  .console-title { font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--ink-2); }
-  .commands { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-  .commands .pill { padding: 2px 9px; }
   .foot-facts { margin-top: 12px; color: var(--ink-2); }
   .foot-author { color: var(--ink-2); }
-  /* The standing figure beside the footer. */
-  .figure { position: relative; flex: none; align-self: flex-end; display: block; width: 300px; height: 600px; margin-bottom: -40px; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-  .figure.held { cursor: grabbing; }
-  /* The picture is wider and taller than his place on the page, so raised arms are not cut off. */
-  .figure canvas { position: absolute; left: -25%; bottom: 0; width: 150%; height: 125%; pointer-events: none; }
-  /* A line to type emotes on, like the game's chat. */
-  .say { display: flex; align-items: baseline; gap: 1ch; margin-top: 8px; color: var(--accent-dim); }
-  .say input { flex: 1; min-width: 0; max-width: 26ch; padding: 3px 0; font: inherit; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; outline: none; caret-color: var(--accent); }
-  .say input::placeholder { color: var(--muted); opacity: 0.7; }
-  .say input:focus { border-bottom-color: var(--accent); }
-  .say-reply { min-height: 1.55em; margin: 6px 0 0 2ch; color: var(--ink); }
   footer p { margin: 2px 0; padding-left: 2ch; text-indent: -2ch; }
   footer p::before { content: '> '; color: var(--accent-dim); }
 
@@ -376,16 +355,7 @@
     h1 { font-size: 21px; }
     .hero-stats { grid-template-columns: 1fr 1fr; align-items: start; }
     .hero-stats .stat:first-child { grid-column: 1 / -1; }
-    .brand .face { width: 80px; height: 80px; }
-    .intro .face { display: none; }
-    footer { flex-direction: column; align-items: flex-start; margin-top: 34px; }
-    /* On a phone the notes come first, then the commands right above Flood. */
-    .foot-text { display: contents; }
-    .foot-notes { order: 1; }
-    .console { order: 2; margin-top: 22px; padding-bottom: 0; }
-    .figure { order: 3; }
-    .figure { width: 220px; height: 440px; align-self: center; margin-top: 60px; margin-bottom: -30px; }
-    .server-head .face { width: 92px; height: 92px; }
+    footer { flex-direction: column; align-items: flex-start; }
     .hero-value { font-size: 64px; }
     .stat-value { font-size: 38px; }
     #players-chart { height: 320px; }
@@ -400,7 +370,6 @@
 <main>
   <header>
     <div class="brand">
-      <span class="face" id="brand-face"></span>
       <div class="brand-text">
         <h1>MXO<span class="dim">//</span>SERVER STATS<span class="cursor" aria-hidden="true">_</span></h1>
         <div class="sub">Who is jacked in on the Matrix Online community servers</div>
@@ -412,7 +381,6 @@
       <p>It did not stay dead. Fans kept the client, the recordings and the memory, and now it rises from its ashes: server by server, district by district, the lights of Mega City are coming back on.</p>
       <p class="intro-line">We are witnessing her rebirth.</p>
       </div>
-      <span class="face" id="intro-face"></span>
     </section>
     <div class="toolbar">
       <div class="ranges" role="group" aria-label="Time range for the charts">
@@ -461,7 +429,7 @@
   <div class="card banner" id="history-off" hidden>History is off because this page has no storage connected yet. The numbers above are live.</div>
 
   <div id="recorded">
-    <h2><img class="glyph" src="/assets/icons/disc_upgrade_master.png" alt="" width="32" height="32"><span class="title">Ranking</span> <span class="note" id="rank-sub"></span></h2>
+    <h2><span class="title">Ranking</span> <span class="note" id="rank-sub"></span></h2>
     <div class="scoped rank-grid">
       <section class="card">
         <div class="eyebrow">Most operatives</div>
@@ -473,7 +441,7 @@
       </section>
     </div>
 
-    <h2><img class="glyph" src="/assets/icons/disc_network_hacker.png" alt="" width="32" height="32"><span class="title">Operatives jacked in</span> <span class="note" id="players-sub"></span></h2>
+    <h2><span class="title">Operatives jacked in</span> <span class="note" id="players-sub"></span></h2>
     <div class="scoped" id="scoped">
       <section class="card">
         <div class="chart-head">
@@ -510,12 +478,12 @@
       </section>
     </div>
 
-    <h2><img class="glyph" src="/assets/icons/disc_upgrade_artist.png" alt="" width="32" height="32"><span class="title">Day by day</span> <span class="note">most operatives seen at once on each day, in your time zone</span></h2>
+    <h2><span class="title">Day by day</span> <span class="note">most operatives seen at once on each day, in your time zone</span></h2>
     <section class="card">
       <div class="echart" id="daily-chart" tabindex="0" role="img" aria-label="Most operatives per day for each server. Use the left and right arrow keys to read values."></div>
     </section>
 
-    <h2><img class="glyph" src="/assets/icons/signal_booster.png" alt="" width="32" height="32"><span class="title">Uptime</span> <span class="note">one square per day, last 90 days, in your time zone</span></h2>
+    <h2><span class="title">Uptime</span> <span class="note">one square per day, last 90 days, in your time zone</span></h2>
     <section class="card">
       <div id="uptime"></div>
       <div class="strip-foot note">
@@ -530,7 +498,7 @@
       </div>
     </section>
 
-    <h2><img class="glyph" src="/assets/icons/disc_awakened.png" alt="" width="32" height="32"><span class="title">Busiest hours</span> <span class="note">average operatives at each hour, in your time zone</span></h2>
+    <h2><span class="title">Busiest hours</span> <span class="note">average operatives at each hour, in your time zone</span></h2>
     <section class="card">
       <div class="chart-head">
         <div class="note" id="hours-note">&nbsp;</div>
@@ -545,7 +513,7 @@
       </div>
     </section>
 
-    <h2><img class="glyph" src="/assets/icons/disc_spy.png" alt="" width="32" height="32"><span class="title">One server at a time</span> <span class="modes" id="server-picker" role="group" aria-label="Server for the breakdown table and the weekly pattern"></span></h2>
+    <h2><span class="title">One server at a time</span> <span class="modes" id="server-picker" role="group" aria-label="Server for the breakdown table and the weekly pattern"></span></h2>
     <section class="card">
       <div class="chart-head">
         <div class="eyebrow">Breakdown <span class="note" id="breakdown-sub"></span></div>
@@ -570,7 +538,7 @@
       </div>
     </section>
 
-    <h2><img class="glyph" src="/assets/icons/disc_data_miner.png" alt="" width="32" height="32"><span class="title">Records</span> <span class="note" id="alltime-scope"></span></h2>
+    <h2><span class="title">Records</span> <span class="note" id="alltime-scope"></span></h2>
     <section class="card">
       <table class="facts">
         <thead><tr><th scope="col">Server</th><th scope="col">Most operatives ever</th><th scope="col">Last operative seen</th></tr></thead>
@@ -578,13 +546,13 @@
       </table>
     </section>
 
-    <h2><img class="glyph" src="/assets/icons/impaired_connection.png" alt="" width="32" height="32"><span class="title">Outages</span> <span class="note">counted after 15 minutes without a live answer</span></h2>
+    <h2><span class="title">Outages</span> <span class="note">counted after 15 minutes without a live answer</span></h2>
     <section class="card">
       <ul class="rows" id="outages"><li class="note">Nothing loaded yet.</li></ul>
     </section>
   </div>
 
-  <h2><img class="glyph" src="/assets/icons/disc_hacker.png" alt="" width="32" height="32"><span class="title">The servers</span> <span class="note">from each team's own posts, November 2026</span></h2>
+  <h2><span class="title">The servers</span> <span class="note">from each team's own posts, November 2026</span></h2>
   <section class="card" id="glance-card" hidden>
     <div class="scroll-x" tabindex="0" role="region" aria-label="Server comparison">
       <table class="facts glance">
@@ -597,22 +565,12 @@
 
   <footer>
     <div class="foot-text">
-      <section class="console" id="console" aria-label="Tell Flood what to do" hidden>
-        <div class="console-title">Tell Flood what to do</div>
-        <form class="say" id="say" autocomplete="off">
-          <label for="say-line">&gt;</label>
-          <input id="say-line" name="line" type="text" maxlength="24" placeholder="/wave" spellcheck="false" autocapitalize="off" autocorrect="off" enterkeyhint="send" aria-describedby="say-reply">
-        </form>
-        <div class="say-reply" id="say-reply" role="status">Type /help to see what he can do.</div>
-        <div class="commands" id="commands"></div>
-      </section>
       <div class="foot-notes">
         <div id="footer"></div>
         <div class="foot-facts" id="page-facts" hidden></div>
         <p class="foot-author">made by hesitancy9996</p>
       </div>
     </div>
-    <span class="figure" id="foot-figure"></span>
   </footer>
 </main>
 

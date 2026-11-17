@@ -112,7 +112,6 @@ prints the numbers. It needs `CRON_SECRET` in `.env.local`.
 - `scripts/visitors.mjs`: prints the visit numbers
 - `src/`: the page and its script
 - `build.mjs`: packs the page into `public/`
-- `src/icons/`: icons and the falling code picture, taken from the game client. They belong to the game's owners
 - `tools/models/`: turns characters and animations from a game install into those files. Run `sh tools/models/make.sh "<game folder>"`
 - `server.js`: runs the site on your own computer
 

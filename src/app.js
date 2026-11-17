@@ -2,7 +2,6 @@ import * as echarts from 'echarts/core';
 import { BarChart, EffectScatterChart, HeatmapChart, LineChart } from 'echarts/charts';
 import { DataZoomComponent, GridComponent, TooltipComponent, VisualMapContinuousComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { act, bust, figureReady } from './bust.js';
 
 echarts.use([BarChart, EffectScatterChart, HeatmapChart, LineChart, DataZoomComponent, GridComponent, TooltipComponent, VisualMapContinuousComponent, CanvasRenderer]);
 
@@ -251,14 +250,6 @@ function arrowKeys(node, count, show) {
   });
 }
 
-// A face from the game for each server. Decoration only: the servers are not tied to these sides.
-const FACES = { rejacked: ['lotus', ''], revived: ['general', ''], mxoemu: ['chessman', ''] };
-
-function faceOf(server) {
-  const [file, who] = FACES[server.id] ?? [];
-  return file ? bust(file, who) : '';
-}
-
 /** Uptime as a share of 1, colored like a status light: operational, partial outage or major outage. */
 function uptimeMark(share) {
   return html('span', `uptime ${share >= 0.995 ? 'good' : share >= 0.95 ? 'warning' : 'critical'}`, percent(share));
@@ -313,11 +304,12 @@ function serverCard(server, column) {
   const head = html('div', 'server-head');
   const badge = html('span', 'status');
   badge.append(html('span', `led ${status.led}`), status.text);
-  // The portrait, then status, name and world stacked beside it.
+  head.dataset.server = server.id;
+  // Status, name and world, stacked.
   const titles = html('div', 'server-titles');
   titles.append(badge, link(server.name, server.site));
   if (server.about?.glance?.world) titles.append(html('div', 'world', `World ${server.about.glance.world}`));
-  head.append(faceOf(server), titles);
+  head.append(titles);
 
   const body = html('div', 'server-body');
   const count = html('div');
@@ -1378,7 +1370,8 @@ function renderAbout() {
         const titles = html('div', 'server-titles');
         titles.append(badge, html('h3', '', server.name));
         if (about.glance?.world) titles.append(html('div', 'world', `World ${about.glance.world}`));
-        head.append(faceOf(server), titles);
+        head.dataset.server = server.id;
+        head.append(titles);
 
         const chips = html('div', 'chips');
         for (const [label, field] of [['Join', 'access'], ['PvP', 'pvp'], ['Since', 'since']]) {
@@ -1426,8 +1419,7 @@ function renderFooter() {
   const sources = html('p', '', `numbers come from each server's own status page, checked every ${stats.sampleSeconds === 60 ? 'minute' : `${stats.sampleSeconds} seconds`}`);
   const rule = html('p', '', 'a server is called down only after 15 minutes without a live answer');
   const legal = html('p', '', 'fan page, not run by the server teams or the owners of The Matrix Online');
-  const art = html('p', '', 'the icons, faces and falling code come from the game and belong to its owners');
-  $('footer').replaceChildren(sources, rule, legal, art);
+  $('footer').replaceChildren(sources, rule, legal);
   // A few facts about this page itself: how long it has been recording, and who came by.
   const facts = [];
   if (stats.since) facts.push(`recording since ${fullDateFmt.format(stats.since)}`);
@@ -1469,6 +1461,12 @@ function renderRecorded() {
 }
 
 function renderAll() {
+  renderEverything();
+  // Tells anything else on the page that the cards and footer were drawn again.
+  document.dispatchEvent(new Event('mxo:render'));
+}
+
+function renderEverything() {
   renderNow();
   $('history-off').hidden = Boolean(stats.storage);
   $('recorded').hidden = !stats.storage;
@@ -1546,15 +1544,15 @@ for (const toggle of document.querySelectorAll('[data-table]')) {
 
 /**
  * Falling code behind the header: mirrored katakana and digits, as in the films, drawn as real text so it
- * stays sharp on any screen. A device with no Japanese font falls back to a picture of the game's own glyphs.
+ * stays sharp on any screen. A device with no Japanese font gets the digits and signs only.
  */
 function startRain() {
   const canvas = $('rain');
   const ctx = canvas.getContext('2d');
   const CELL = 16;
-  const GLYPHS = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜﾝ0123456789Z:.=*+-<>|';
+  const KANA = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜﾝ';
+  const PLAIN = '0123456789Z:.=*+-<>|';
   const FONT = `bold ${CELL}px "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, "MS Gothic", "Noto Sans CJK JP", "Noto Sans JP", monospace`;
-  let strips = null; // the fallback picture, tinted green
   let drops = [];
   let w = 0;
   let h = 0;
@@ -1571,6 +1569,8 @@ function startRain() {
     return look('ﾊ') !== look('ﾘ') && look('ﾊ') !== look('\uffff');
   };
 
+  const GLYPHS = hasKana() ? KANA + PLAIN : PLAIN;
+
   const resize = () => {
     const scale = Math.min(3, window.devicePixelRatio || 1);
     w = canvas.clientWidth;
@@ -1578,7 +1578,7 @@ function startRain() {
     canvas.width = w * scale;
     canvas.height = h * scale;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    drops = Array.from({ length: Math.ceil(w / CELL) }, () => ({ row: Math.random() * -30, strip: Math.floor(Math.random() * 8), start: Math.floor(Math.random() * 400) }));
+    drops = Array.from({ length: Math.ceil(w / CELL) }, () => ({ row: Math.random() * -30 }));
   };
   /** One glyph, flipped left to right inside its cell. */
   const glyph = (column, row, color) => {
@@ -1596,10 +1596,7 @@ function startRain() {
     ctx.textAlign = 'center';
     drops.forEach((drop, i) => {
       const row = Math.floor(drop.row);
-      if (row >= 0 && strips) {
-        const tall = strips.height - CELL;
-        ctx.drawImage(strips, drop.strip * CELL, (drop.start + row * CELL) % tall, CELL, CELL, i * CELL, row * CELL, CELL, CELL);
-      } else if (row >= 0) {
+      if (row >= 0) {
         // The glyph behind the newest one settles to green. The newest is nearly white.
         if (row > 0) {
           ctx.fillStyle = INK.page;
@@ -1609,7 +1606,7 @@ function startRain() {
         glyph(i, row, token('--rain-head'));
       }
       drop.row += 1;
-      if (drop.row * CELL > h && Math.random() > 0.96) Object.assign(drop, { row: 0, strip: Math.floor(Math.random() * 8), start: Math.floor(Math.random() * 400) });
+      if (drop.row * CELL > h && Math.random() > 0.96) drop.row = 0;
     });
   };
   const run = () => {
@@ -1627,29 +1624,7 @@ function startRain() {
     });
   };
 
-  if (hasKana()) {
-    run();
-    return;
-  }
-  const picture = new Image();
-  picture.onload = () => {
-    // The picture stores brightness only. It is tinted once, with brightness as opacity.
-    strips = document.createElement('canvas');
-    strips.width = picture.width;
-    strips.height = picture.height;
-    const paint = strips.getContext('2d');
-    paint.drawImage(picture, 0, 0);
-    const pixels = paint.getImageData(0, 0, strips.width, strips.height);
-    for (let i = 0; i < pixels.data.length; i += 4) {
-      pixels.data[i + 3] = pixels.data[i];
-      pixels.data[i] = 70;
-      pixels.data[i + 1] = 255;
-      pixels.data[i + 2] = 130;
-    }
-    paint.putImageData(pixels, 0, 0);
-    run();
-  };
-  picture.src = '/assets/icons/code.png';
+  run();
 }
 
 // The charts follow the width of the page.
@@ -1690,67 +1665,6 @@ startRain();
   // Follow the device while no choice has been saved.
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', (event) => {
     if (!/(?:^|; )theme=/.test(document.cookie)) show(event.matches ? 'light' : 'dark');
-  });
-}
-// Cryptos, by the title: the exile program who decides who gets in. Flood stands by the footer.
-$('brand-face').replaceWith(bust('cryptos', ''));
-// Tyndall, beside the story of the game's end and return. She watches the pointer.
-$('intro-face').replaceWith(bust('tyndall', '', { watches: true }));
-$('foot-figure').replaceWith(bust('flood', '', { whole: true }));
-// The line under the footer takes emotes for him, typed the way they are in the game.
-{
-  const SAID = {
-    wave: 'Flood waves.',
-    bow: 'Flood bows.',
-    nod: 'Flood nods.',
-    no: 'Flood shakes his head.',
-    shrug: 'Flood shrugs.',
-    point: 'Flood points.',
-    clap: 'Flood claps.',
-    cheer: 'Flood cheers.',
-    salute: 'Flood salutes.',
-    beckon: 'Flood beckons.',
-    laugh: 'Flood laughs.',
-    thumbsup: 'Flood gives a thumbs up.',
-    kneel: 'Flood kneels.',
-    crossarms: 'Flood crosses his arms.',
-    dance: 'Flood dances.',
-    turn: 'Flood turns around.',
-  };
-  const ALSO = { hello: 'wave', hi: 'wave', yes: 'nod', shake: 'no', shakehead: 'no', applaud: 'clap', pointf: 'point', thumbs: 'thumbsup', spin: 'turn', rotate: 'turn' };
-  const HELP = 'Click a command or type it. Drag Flood to turn him.';
-  const listed = [];
-  /** Does what a command says and gives the line to show for it. */
-  const answer = (word) => {
-    const emote = ALSO[word] ?? word;
-    if (word === 'help' || word === '?') {
-      // Asking for help lays out every command, ready to click.
-      for (const button of listed) button.hidden = false;
-      return HELP;
-    }
-    if (!Object.hasOwn(SAID, emote)) return `Unknown command /${word}. Try /help`;
-    return act('flood', emote) ? SAID[emote] : 'Flood is not here.';
-  };
-  $('say').addEventListener('submit', (event) => {
-    event.preventDefault();
-    const word = $('say-line').value.trim().toLowerCase().replace(/^\/+/, '').split(/\s+/)[0];
-    $('say-line').value = '';
-    if (word) $('say-reply').textContent = answer(word);
-  });
-  // Every command can also be clicked. Only /help shows until it is asked for.
-  for (const name of ['help', ...Object.keys(SAID)]) {
-    const button = html('button', 'pill', `/${name}`);
-    button.type = 'button';
-    button.addEventListener('click', () => ($('say-reply').textContent = answer(name)));
-    if (name !== 'help') {
-      button.hidden = true;
-      listed.push(button);
-    }
-    $('commands').append(button);
-  }
-  // Shown only once he is there to answer.
-  figureReady('flood').then((there) => {
-    $('console').hidden = !there;
   });
 }
 // One call per page view, so visits can be counted. Automated browsers are left out.

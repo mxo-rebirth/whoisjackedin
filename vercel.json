@@ -8,7 +8,7 @@
   "functions": {
     "api/*.js": {
       "maxDuration": 20,
-      "includeFiles": "public/page.html"
+      "includeFiles": "{public/page.html,private/**,src/models/**,src/icons/*.png}"
     }
   },
   "headers": [
@@ -39,6 +39,16 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "cookie",
+          "key": "rsid"
+        }
+      ],
+      "destination": "/api/page?saved=1"
+    },
     {
       "source": "/",
       "destination": "/api/page"
