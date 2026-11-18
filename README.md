@@ -14,7 +14,7 @@ The code lives in the private repo `hesitancy9996/whoisjackedin`, and the site i
 - A short description of each server
 - Dark and light themes, in green or blue
 
-Two handy extras for the address: `?range=7d` opens a time range (`1h`, `24h`, `7d`, `30d`, `all`), and `?gaps` also lists short blips where a server's status page didn't answer clearly.
+Three handy extras for the address: `?links` adds links to the macOS guide and to this code (both repos are private for now), `?range=7d` opens a time range (`1h`, `24h`, `7d`, `30d`, `all`), and `?gaps` also lists short blips where a server's status page didn't answer clearly.
 
 The page calls players "operatives", like the game did.
 

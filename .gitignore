@@ -4,3 +4,6 @@ node_modules/
 .env*
 public/
 private/
+
+# Python caches
+__pycache__/

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Rebuilds the 3D busts in src/models from a Matrix Online client install.
+# Rebuilds the 3D busts in art/models from a Matrix Online client install.
 # Usage: sh tools/models/make.sh "<folder that holds rezmap.lta and packmaps/>"
 # Needs python3 and, for shrinking the textures, macOS's sips.
 set -e
 GAME="$1"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$(mktemp -d)"
-MODELS="$HERE/../../src/models"
+MODELS="$HERE/../../art/models"
 python3 -I "$HERE/build_models.py" "$GAME" "$OUT" \
   cryptos=resource/characters-NPC/Cryptos/Cryptos.moa \
   tyndall:bust:woman=resource/characters-NPC/TyndallNPC/TyndallNPC.moa \

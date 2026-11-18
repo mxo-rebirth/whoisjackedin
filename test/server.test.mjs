@@ -40,6 +40,8 @@ only('the page comes with its numbers and the security headers from vercel.json'
   const page = await res.text();
   assert.match(page, /id="boot">\{"now":/);
   assert.ok(!page.includes('api/model'), 'the public page has no trace of the private part');
+  assert.ok(!page.includes('github.com'), 'the repo links appear only with ?links');
+  assert.match(await (await get('/?links')).text(), /github\.com\/hesitancy9996\/mxo-apple-silicon/);
 });
 
 only('the private link, its cookie, and switching it off', async () => {
@@ -67,7 +69,8 @@ only('the numbers, and the parameters they refuse', async () => {
 });
 
 only('the private files need the key', async () => {
-  assert.equal((await get('/api/model?f=tyndall.bin&k=local')).status, 200);
+  // A copy without the built characters answers "not found" here too.
+  if (existsSync(path.join(ROOT, 'art', 'models', 'tyndall.bin'))) assert.equal((await get('/api/model?f=tyndall.bin&k=local')).status, 200);
   assert.equal((await get('/api/model?f=tyndall.bin')).status, 404);
   assert.equal((await get('/api/model?f=../.env.local&k=local')).status, 404);
 });

@@ -8,7 +8,7 @@
   "functions": {
     "api/*.js": {
       "maxDuration": 20,
-      "includeFiles": "{public/page.html,private/**,src/models/**,src/icons/*.png}"
+      "includeFiles": "{public/page.html,private/**,art/models/**,art/icons/*.png}"
     }
   },
   "headers": [

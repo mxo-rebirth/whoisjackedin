@@ -22,8 +22,8 @@ test('only CAST_SECRET makes the key, so the private link changes without touchi
 
 test('only the cast\'s own files can be asked for', () => {
   assert.deepEqual(castFile('cast.js').path, 'private/cast.js');
-  assert.deepEqual(castFile('icon/disc_spy.png').path, 'src/icons/disc_spy.png');
-  assert.deepEqual(castFile('tyndall.bin').path, 'src/models/tyndall.bin');
+  assert.deepEqual(castFile('icon/disc_spy.png').path, 'art/icons/disc_spy.png');
+  assert.deepEqual(castFile('tyndall.bin').path, 'art/models/tyndall.bin');
   for (const bad of ['../.env.local', 'icon/../x.png', 'x.js', '/etc/passwd', 'tyndall.bin/..', '', null]) assert.equal(castFile(bad), null, String(bad));
 });
 

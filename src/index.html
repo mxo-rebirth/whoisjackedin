@@ -202,6 +202,22 @@
   h2 .modes { justify-self: start; margin-top: 6px; }
   .brand { display: flex; align-items: flex-end; gap: 14px; border-bottom: 1px solid var(--border); }
   .brand-text { min-width: 0; align-self: center; padding: 8px 0 12px; }
+  /* Links to this project's own repos, small, in the header's top-right corner. */
+  header { position: relative; }
+  .own-links { position: absolute; top: 6px; right: 0; z-index: 2; display: flex; align-items: center; gap: 6px; font-size: var(--t-label); }
+  .own-links a { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-2); text-decoration: none; padding: 2px 7px; border: 1px solid var(--border); border-radius: 4px; background: var(--control); }
+  .own-links a:hover { color: var(--accent); border-color: var(--accent); }
+  .own-links svg { width: 13px; height: 13px; }
+  /* "Play on a Mac" is the one to notice: the accent color, a soft glow and a slow sweep of light. */
+  .own-links a.mac { position: relative; overflow: hidden; color: var(--accent); border-color: var(--accent-dim); box-shadow: 0 0 10px var(--glow); }
+  .own-links a.mac:hover, .own-links a.mac:focus-visible { color: var(--on-accent); background: var(--accent); border-color: var(--accent); box-shadow: 0 0 18px var(--glow); }
+  .own-links a.mac::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 35%, transparent) 50%, transparent 70%); transform: translateX(-100%); animation: sweep 4.5s ease-in-out infinite; pointer-events: none; }
+  @keyframes sweep { 0%, 55% { transform: translateX(-100%); } 85%, 100% { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) { .own-links a.mac::after { animation: none; display: none; } }
+  /* Where the title could reach the corner, it moves down to leave a clear gap under the links. */
+  @media (max-width: 920px) {
+    header:has(.own-links) .brand { padding-top: 42px; }
+  }
   .about .server-head { margin: -8px 0 14px; }
   h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
   .eyebrow { font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--ink-2); }
@@ -449,6 +465,7 @@
         <h1>MXO<span class="dim">//</span>SERVER STATS<span class="cursor" aria-hidden="true">_</span></h1>
         <div class="sub">Who is jacked in on the Matrix Online community servers</div>
       </div>
+      <span id="own-links"></span>
     </div>
     <section class="intro" aria-label="The story so far">
       <div class="intro-text">

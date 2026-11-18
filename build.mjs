@@ -12,9 +12,9 @@ const ABOUT_SLOT = '<section class="about" id="about"></section>';
 
 await rm(out, { recursive: true, force: true });
 await mkdir(path.join(out, 'assets'), { recursive: true });
-// Only the link-preview picture is public. The game's icons in src/icons are handed out with the key.
+// Only the link-preview picture is public. The game's art lives in art/, outside git, and only api/model.js hands it out.
 await mkdir(path.join(out, 'assets', 'icons'), { recursive: true });
-await cp(path.join(root, 'src', 'icons', 'og.jpg'), path.join(out, 'assets', 'icons', 'og.jpg'));
+await cp(path.join(root, 'src', 'og.jpg'), path.join(out, 'assets', 'icons', 'og.jpg'));
 // The 3D characters are not part of the public page: no models, script or styles for them go into public/.
 // Their script is built into private/, which only api/model.js reads, and only for a visitor with the key.
 const hidden = path.join(root, 'private');
@@ -53,6 +53,7 @@ const notice = async (title, ...file) => `${title}\n${'='.repeat(title.length)}\
 await writeFile(
   path.join(out, 'assets', 'licenses.txt'),
   [
+    `This site\n${'='.repeat(9)}\n\n${(await readFile(path.join(root, 'LICENSE'), 'utf8')).trim()}`,
     await notice('Apache ECharts', 'echarts', 'LICENSE'),
     await notice('Apache ECharts, notice', 'echarts', 'NOTICE'),
     await notice('ZRender', 'zrender', 'LICENSE'),

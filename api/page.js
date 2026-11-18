@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const page = await loadTemplate(req);
   let body = page;
   try {
-    body = renderPage(page, await buildStats('24h', 0));
+    body = renderPage(page, await buildStats('24h', 0), { links: req.query?.links !== undefined });
   } catch (err) {
     // Without numbers the page still works: its script fetches them.
     console.error(err);
