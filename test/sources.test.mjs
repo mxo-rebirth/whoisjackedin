@@ -18,6 +18,9 @@ test('Rejacked', () => {
   assert.deepEqual(r.details.map((d) => d.label), ['World', 'Launcher']);
   fails('rejacked', {});
   fails('rejacked', { status: { online: true, playersOnline: -1 } });
+  // Seen on 18 Nov 2026: when the server is down the count is null.
+  const down = server('rejacked').read({ status: { online: false, playersOnline: null, checkedAt: '2026-11-18T16:53:58Z' } });
+  assert.deepEqual([down.online, down.players], [false, 0]);
 });
 
 test('MxO Revived: anything but "live" is maintenance, with nobody on', () => {

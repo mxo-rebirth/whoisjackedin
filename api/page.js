@@ -45,6 +45,6 @@ export default async function handler(req, res) {
   if (cookie) res.setHeader('set-cookie', cookie);
   res.setHeader('content-type', 'text/html; charset=utf-8');
   // Anything that depends on the visitor, or sets a cookie, is for that visitor only.
-  res.setHeader('cache-control', key || cookie || req.query?.saved ? 'private, no-store' : 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('cache-control', key || cookie || req.query?.saved ? 'private, no-store' : 'public, max-age=0, s-maxage=60, stale-while-revalidate=30');
   res.status(200).send(key ? withCast(body, key) : body);
 }

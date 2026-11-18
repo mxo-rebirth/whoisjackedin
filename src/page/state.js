@@ -16,7 +16,8 @@ if (linked in RANGE_LABEL) range = linked;
 
 export let stats = null;
 
-export let loadedAt = null;
+// When the newest reading in `stats` was taken, on this browser's clock.
+export let readingAt = null;
 
 export const hiddenServers = new Set(); // switched off in the legend
 
@@ -30,8 +31,8 @@ export const todayKey = () => {
 export const setStats = (value) => {
   stats = value;
 };
-export const setLoadedAt = (value) => {
-  loadedAt = value;
+export const setReadingAt = (value) => {
+  readingAt = value;
 };
 export const setRange = (value) => {
   range = value;

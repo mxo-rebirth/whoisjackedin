@@ -1,5 +1,5 @@
 // The page's script: loads the numbers, draws every part of the page, and keeps it up to date.
-import { linked, loadedAt, range, RANGE_LABEL, setLoadedAt, setRange, setStats, stats } from './page/state.js';
+import { linked, range, RANGE_LABEL, readingAt, setRange, setReadingAt, setStats, stats } from './page/state.js';
 import { dayTimeFmt, TZ_HOURS } from './page/format.js';
 import { $, stateIcon } from './page/dom.js';
 import { charts, paint } from './page/look.js';
@@ -10,10 +10,30 @@ import { renderAbout, renderFooter } from './page/about.js';
 import { startRain } from './page/rain.js';
 import './page/leave.js';
 
+// The label counts from the newest reading, not from the fetch: a fetched answer can already be a minute old.
 function renderUpdated() {
-  if (!loadedAt) return;
-  const seconds = Math.round((Date.now() - loadedAt) / 1000);
-  $('updated').textContent = seconds < 5 ? 'updated just now' : seconds < 120 ? `updated ${seconds} s ago` : `last update ${dayTimeFmt.format(loadedAt)}`;
+  if (!readingAt) return;
+  const seconds = Math.max(0, Math.round((Date.now() - readingAt) / 1000));
+  $('updated').textContent = seconds < 5 ? 'read just now' : seconds < 120 ? `read ${seconds} s ago` : `last read ${dayTimeFmt.format(readingAt)}`;
+}
+
+/**
+ * The newest reading's time on this browser's clock. Worked out from the server's own times, so a wrong clock
+ * here does not matter. `age` is how long a cache held the answer, in seconds.
+ */
+function readingTimeOf(data, age = 0) {
+  const newest = Math.max(0, ...data.servers.map((server) => server.now?.at ?? 0));
+  return newest ? Date.now() - age * 1000 - (data.now - newest) : null;
+}
+
+// Vercel's cache keeps each answer for a minute and may hand it out 10 s longer (see api/stats.js), so asking
+// sooner only gets the same answer back. The next fetch is timed for just after that.
+const CACHED_MS = 70_000;
+let nextLoad = null;
+function scheduleLoad(cachedAt = Date.now()) {
+  clearTimeout(nextLoad);
+  const wait = Math.min(75_000, Math.max(15_000, cachedAt + CACHED_MS + 2_000 - Date.now()));
+  nextLoad = setTimeout(() => (document.hidden ? scheduleLoad() : load()), wait);
 }
 
 function showBanner(message) {
@@ -58,24 +78,27 @@ function showSaved() {
     const saved = JSON.parse(localStorage.getItem('last-stats'));
     if (!saved?.servers || !(saved.history?.range in RANGE_LABEL)) return;
     setStats(saved);
-    setLoadedAt(saved.now);
+    setReadingAt(readingTimeOf(saved));
     setRange(saved.history.range);
     renderAll();
   } catch (err) {
     setStats(null);
-    setLoadedAt(null);
+    setReadingAt(null);
   }
 }
 
 async function load({ dim = false } = {}) {
+  let cachedAt = Date.now();
   const scoped = document.querySelectorAll('.scoped');
   if (dim) scoped.forEach((node) => node.classList.add('stale'));
   try {
     const res = await fetch(`/api/stats?range=${range}&tz=${TZ_HOURS}`);
     if (!res.ok) throw new Error(`status ${res.status}`);
     const fresh = await res.json();
+    const age = Number(res.headers.get('age')) || 0;
     setStats(fresh);
-    setLoadedAt(Date.now());
+    setReadingAt(readingTimeOf(fresh, age));
+    cachedAt = Date.now() - age * 1000;
     showBanner('');
     renderAll();
     // Remember the last good data, so there is something to show if the next load fails.
@@ -86,12 +109,15 @@ async function load({ dim = false } = {}) {
     console.error(err);
     showBanner(
       stats
-        ? `Could not refresh. Showing the last data, from ${dayTimeFmt.format(loadedAt)}. Trying again every minute.`
+        ? `Could not refresh. Showing the last data, read ${dayTimeFmt.format(readingAt)}. Trying again every minute.`
         : 'The stats could not be loaded. This page retries by itself every minute.',
     );
+    scheduleLoad();
+    return;
   } finally {
     scoped.forEach((node) => node.classList.remove('stale'));
   }
+  scheduleLoad(cachedAt);
 }
 
 function selectRange(next, { dim = true } = {}) {
@@ -132,11 +158,9 @@ new ResizeObserver(([entry]) => {
   renderWeek();
 }).observe($('players-plot'));
 
-// The numbers change once a minute, so that is how often they are fetched.
-setInterval(() => document.hidden || load(), 60_000);
-
 setInterval(renderUpdated, 1000);
 
+// Back on the tab, the numbers are fetched at once instead of waiting for the timer.
 document.addEventListener('visibilitychange', () => document.hidden || load());
 
 startRain();
@@ -193,7 +217,7 @@ try {
 
 if (boot?.servers) {
   setStats(boot);
-  setLoadedAt(boot.now);
+  setReadingAt(readingTimeOf(boot));
   renderAll();
 } else if (!linked) showSaved();
 
