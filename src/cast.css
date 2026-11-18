@@ -18,7 +18,10 @@ h2 .glyph { grid-row: 1 / span 2; }
 .face { flex: none; display: block; }
 :root[data-theme="light"] .face { filter: drop-shadow(0 1px 4px rgba(13, 32, 20, 0.4)); }
 .brand .face { width: 104px; height: 104px; margin-left: -6px; }
+/* On a server's card the face takes a share of the card's width, so a name still fits when four cards stand in a row. */
+:root[data-cast] .servers .card { container-type: inline-size; }
 .server-head .face { width: 104px; height: 104px; margin-left: -8px; }
+.servers .server-head .face { width: clamp(64px, 32cqw, 104px); height: clamp(64px, 32cqw, 104px); }
 .about .server-head .face { width: 92px; height: 92px; }
 
 /* Tyndall stands on the rule under the story, as Cryptos does under the title. The closing line goes back under the story. */

@@ -13,7 +13,8 @@ python3 -I "$HERE/build_models.py" "$GAME" "$OUT" \
   flood:full:regal=resource/characters-NPC/Flood/NPCMorph.moa \
   general=resource/characters-NPC/General-male/NPCM_General.moa \
   lotus=resource/characters-NPC/Lotus/Lotus.moa \
-  chessman=resource/characters-NPC/Chessman/ChessmanClothed.moa
+  chessman=resource/characters-NPC/Chessman/ChessmanClothed.moa \
+  weaver=resource/characters-NPC/weaver/weaver.moa
 rm -rf "$MODELS"; mkdir -p "$MODELS"; cp "$OUT"/*.bin "$MODELS/"
 while read file source side; do
   if [ "${file##*.}" = "jpg" ]; then sips -s format jpeg -s formatOptions 78 -Z "$side" "$OUT/textures/$source" --out "$MODELS/$file" >/dev/null

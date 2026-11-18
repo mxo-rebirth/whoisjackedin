@@ -6,19 +6,19 @@
 <meta name="color-scheme" content="dark light">
 <script src="/assets/theme.js"></script>
 <title>MxO Server Stats: Matrix Online player counts, live</title>
-<meta name="description" content="Unofficial live player counts for the Matrix Online private servers run by the community: Rejacked, MxO Revived and MxOEmu.">
+<meta name="description" content="Unofficial live player counts for the Matrix Online private servers run by the community: Rejacked, MxO Revived, MxOEmu and openMXO.">
 <link rel="canonical" href="__SITE__/">
 <meta name="theme-color" content="#030604">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MxO server stats">
 <meta property="og:title" content="MxO Server Stats: Matrix Online player counts, live">
-<meta property="og:description" content="Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived and MxOEmu.">
+<meta property="og:description" content="Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO.">
 <meta property="og:url" content="__SITE__/">
 <meta property="og:image" content="__SITE__/assets/icons/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"MxO server stats","url":"__SITE__/","inLanguage":"en","description":"Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived and MxOEmu."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"MxO server stats","url":"__SITE__/","inLanguage":"en","description":"Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO."}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23030604'/%3E%3Cpath d='M3 12V8M6.5 12V5M10 12V9M13.5 12V4' stroke='%233dff8f' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -38,6 +38,7 @@
     --s1: #3987e5;
     --s2: #d55181;
     --s3: #c98500;
+    --s4: #884baf;
     --good: #0ca30c;
     --warning: #fab219;
     --critical: #d03b3b;
@@ -86,6 +87,7 @@
     --s1: #2a78d0;
     --s2: #b03a6f;
     --s3: #8f6400;
+    --s4: #642da4;
     --up: #0b7a35;
     --down: #c0392b;
     --warning-ink: #946200;
@@ -357,6 +359,21 @@
   /* Short gaps sit under the outages, set apart by a rule. */
   .gaps-title { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--grid); }
   .gaps-note { margin: 4px 0 12px; max-width: 78ch; }
+  /* The box that opens before a link leaves for one of the projects: this page vouches for nobody's software. */
+  .leave { width: min(520px, calc(100vw - 32px)); padding: 0; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 4px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5); }
+  .leave::backdrop { background: rgba(0, 0, 0, 0.6); }
+  .leave-box { padding: 20px 22px 18px; }
+  .leave p { margin: 10px 0 0; font-size: var(--t-body); line-height: 1.6; color: var(--ink-2); }
+  .leave .leave-where { margin-top: 12px; font-size: var(--t-lead); color: var(--ink); overflow-wrap: anywhere; }
+  .leave strong { color: var(--accent); font-weight: 600; }
+  .leave-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 8px; margin-top: 18px; }
+  /* The tick box takes the left side; on a narrow screen it gets a line of its own above the buttons. */
+  .leave-keep { flex: 1 1 auto; display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-note); color: var(--ink-2); cursor: pointer; }
+  .leave-keep input { flex: none; width: 15px; height: 15px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+  /* The two buttons stay side by side. */
+  .leave-buttons { display: inline-flex; gap: 8px; }
+  .leave-actions .pill { display: inline-block; padding: 6px 14px; text-decoration: none; }
+  .leave-actions .leave-go, .leave-actions .leave-go:hover { color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 600; }
   .rows li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); }
   .rows li:first-child { padding-top: 0; }
   .rows li:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -372,6 +389,8 @@
   .glance { min-width: 440px; }
   .glance thead th { position: static; white-space: nowrap; }
   .about { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; margin-top: 12px; }
+  /* Four servers stand two across, in two even rows, not three and one. */
+  .about:has(> .card:nth-child(4)) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
   .about .card {
     margin-top: 0; display: flex; flex-direction: column; border-top: 2px solid var(--c); padding: 18px 20px;
     background: var(--lines), linear-gradient(180deg, color-mix(in srgb, var(--c) 13%, var(--surface-2)) 0, var(--card-top) 130px, var(--card-bottom));
@@ -633,6 +652,21 @@
     </div>
   </footer>
 </main>
+
+<dialog class="leave" id="leave" aria-labelledby="leave-title">
+  <div class="leave-box">
+    <div class="eyebrow" id="leave-title">Before you go</div>
+    <p class="leave-where">This link leaves for <strong id="leave-host">another site</strong>.</p>
+    <p>This page is independent. It is not connected to any server project and only shows what their public status feeds report. It cannot promise that their sites, clients, launchers or downloads are safe. If you install one, you do so at your own risk.</p>
+    <div class="leave-actions">
+      <label class="leave-keep"><input type="checkbox" id="leave-keep"> Remember my choice</label>
+      <span class="leave-buttons">
+        <button type="button" class="pill" id="leave-stay">Stay here</button>
+        <a class="pill leave-go" id="leave-go" href="#" target="_blank" rel="noopener noreferrer" autofocus>Continue</a>
+      </span>
+    </div>
+  </div>
+</dialog>
 
 <script type="application/json" id="boot">null</script>
 <script defer src="/assets/app.js"></script>

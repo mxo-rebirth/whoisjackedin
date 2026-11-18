@@ -57,7 +57,7 @@ for (const heading of document.querySelectorAll('h2')) {
 }
 
 // A face from the game for each server. Decoration only: the servers are not tied to these sides.
-const FACES = { rejacked: ['lotus', ''], revived: ['general', ''], mxoemu: ['chessman', ''] };
+const FACES = { rejacked: ['lotus', ''], revived: ['general', ''], mxoemu: ['chessman', ''], openmxo: ['weaver', ''] };
 
 /** The page draws its cards and footer again whenever new numbers arrive. Each time, the faces go back on and the footer says whose art this is. */
 function dress() {

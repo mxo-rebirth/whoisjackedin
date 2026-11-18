@@ -1,6 +1,6 @@
 # MxO stats
 
-A fan-made page that shows how many people are playing on the Matrix Online community servers (private servers run by fans): Rejacked, MxO Revived and MxOEmu.
+A fan-made page that shows how many people are playing on the Matrix Online community servers (private servers run by fans): Rejacked, MxO Revived, MxOEmu and openMXO. The page is independent of all of them and says so: it does not vouch for their software.
 
 Live at https://whoisjackedin.com
 
@@ -28,6 +28,7 @@ Each server has a small public status page that its own website or launcher read
 | Rejacked | `https://mxo-rejacked.com/api/launcher/v1` | online or not, player count, launcher version |
 | MxO Revived | `https://mxorevived.com/api/server-status` | status, player count |
 | MxOEmu | `https://mxoemu.info/api/servers` | status, player count, players by district |
+| openMXO | `https://openmxo.com/forum/map/presence` | state of the server, and a list whose length is the player count (the list itself is never read or kept) |
 
 The Discord member counts come from each Discord's public invite link, once an hour.
 
@@ -47,7 +48,7 @@ The site is on Vercel's free plan.
 - Days are counted in the visitor's own time zone, to the nearest hour.
 - The page arrives with the current numbers already in it: `api/page` fills them into the built page and the result is cached for a minute. Search engines and link previews get them too. The browser then keeps them fresh, once a minute.
 - `api/stats` gives the page its numbers.
-- `api/collect` takes one reading of all three servers.
+- `api/collect` takes one reading of all the servers.
 - Readings are saved in an Upstash Redis database on its free plan.
 - A free cron service calls `api/collect` every minute. Vercel's free plan can only do that once a day by itself.
 
@@ -103,7 +104,7 @@ prints the numbers. It needs `CRON_SECRET` in `.env.local`.
 
 ## Files
 
-- `lib/sources.js`: the three servers, how to read each one, and their descriptions
+- `lib/sources.js`: the servers, how to read each one, and their descriptions
 - `lib/store.js`: saving and loading, in Redis on Vercel and in files on your computer
 - `lib/core.js`: taking readings and working out the numbers
 - `lib/visits.js`: counting visits

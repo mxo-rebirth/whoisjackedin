@@ -108,6 +108,53 @@ function link(label, url) {
   return node;
 }
 
+// ---- a word of care before a link leaves for one of the projects ----
+// A link to another site opens a box that says this page vouches for nobody's software. It asks every time,
+// until the visitor goes on with "remember my choice" ticked: that is kept in this browser, and the links work
+// as usual from then on. Without scripts, or in a browser with no such box, the links simply work.
+const leave = $('leave');
+let warned = false;
+try {
+  warned = localStorage.getItem('warned') === '1';
+} catch {}
+function askFirst(event) {
+  if (warned || !leave?.showModal || leave.open) return;
+  const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+  if (!anchor || anchor.id === 'leave-go') return;
+  let url;
+  try {
+    url = new URL(anchor.href);
+  } catch {
+    return;
+  }
+  if (!/^https?:$/.test(url.protocol) || url.host === location.host) return;
+  event.preventDefault();
+  $('leave-host').textContent = url.host.replace(/^www\./, '');
+  $('leave-go').href = url.href;
+  $('leave-keep').checked = false;
+  leave.showModal();
+}
+document.addEventListener('click', askFirst);
+// A click with the middle button opens a link in a new tab; it is asked about too.
+document.addEventListener('auxclick', (event) => {
+  if (event.button === 1) askFirst(event);
+});
+$('leave-stay')?.addEventListener('click', () => leave.close());
+$('leave-go')?.addEventListener('click', () => {
+  if ($('leave-keep').checked) {
+    // Where the browser keeps nothing, the choice still holds until the page is closed.
+    warned = true;
+    try {
+      localStorage.setItem('warned', '1');
+    } catch {}
+  }
+  leave.close();
+});
+// A click on the dimmed page around the box closes it.
+leave?.addEventListener('click', (event) => {
+  if (event.target === leave) leave.close();
+});
+
 function stateIcon(kind) {
   const color = { good: 'var(--good)', critical: 'var(--critical)', unknown: 'var(--muted)' }[kind];
   const shape = { good: 'M4.5 8.2l2.3 2.3 4.7-5', critical: 'M5.2 5.2l5.6 5.6M10.8 5.2l-5.6 5.6', unknown: 'M4.8 8h6.4' }[kind];
@@ -159,7 +206,7 @@ const BAND_POINTER = { type: 'shadow', shadowStyle: {} };
 
 /** Reads the current theme's colors into the objects the charts use. */
 function paint() {
-  Object.assign(SERIES, { rejacked: token('--s1'), revived: token('--s2'), mxoemu: token('--s3') });
+  Object.assign(SERIES, { rejacked: token('--s1'), revived: token('--s2'), mxoemu: token('--s3'), openmxo: token('--s4') });
   Object.assign(INK, {
     text: token('--ink'),
     soft: token('--ink-2'),
@@ -1459,7 +1506,8 @@ function renderFooter() {
   const sources = html('p', '', `numbers come from each server's own status page, checked every ${stats.sampleSeconds === 60 ? 'minute' : `${stats.sampleSeconds} seconds`}`);
   const rule = html('p', '', 'a server is called down only after 15 minutes without a live answer');
   const legal = html('p', '', 'fan page, not run by the server teams or the owners of The Matrix Online');
-  $('footer').replaceChildren(sources, rule, legal);
+  const care = html('p', '', 'not connected to any server project, and no promise that their clients or downloads are safe');
+  $('footer').replaceChildren(sources, rule, legal, care);
   // A few facts about this page itself: how long it has been recording, and who came by.
   const facts = [];
   if (stats.since) facts.push(`recording since ${fullDateFmt.format(stats.since)}`);
