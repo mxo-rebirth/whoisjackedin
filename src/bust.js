@@ -1,12 +1,10 @@
-// Turning 3D busts of game characters, drawn with WebGL from the game's own models.
-// One hidden WebGL canvas draws every character in turn. Each place a character is shown is a plain
-// canvas that receives a copy, so the same character can appear more than once.
+// Turning 3D busts of game characters, drawn with WebGL from the game's own models. One hidden canvas draws
+// each character in turn and copies it to plain canvases, so a character can appear more than once.
 
 const SIZE = 384; // a bust is drawn at this size, then copied to where it is shown
 const SHOWN = 256; // pixel size of a bust's canvas on the page
-// A whole figure gets a picture 3 wide to 5 tall, with room around it for a raised arm or a jump: its
-// height takes FILL of the picture and its feet stand FOOT above the bottom edge. The hidden canvas is big
-// enough for either.
+// A whole figure gets a 3 by 5 picture with room for a raised arm or a jump: its height takes FILL of the
+// picture and its feet stand FOOT above the bottom edge. The hidden canvas fits either size.
 const FIGURE = [624, 1040];
 const FIGURE_SHOWN = [480, 800];
 const FILL = 0.741;
@@ -105,7 +103,6 @@ function multiply(a, b) {
 }
 const move = (x, y, z) => new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
 const aroundY = (a) => new Float32Array([Math.cos(a), 0, -Math.sin(a), 0, 0, 1, 0, 0, Math.sin(a), 0, Math.cos(a), 0, 0, 0, 0, 1]);
-const aroundZ = (a) => new Float32Array([Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const aroundX = (a) => new Float32Array([1, 0, 0, 0, 0, Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1]);
 function lens(fovY, near, far, wide = 1) {
   const f = 1 / Math.tan(fovY / 2);
@@ -124,7 +121,7 @@ const IDENTITY = move(0, 0, 0);
 const RESTING = new Float32Array(BONES * 16);
 for (let i = 0; i < BONES; i++) RESTING.set(IDENTITY, i * 16);
 
-// ---- moves: the game's own animations, played on the bones of a model that has them ----
+// Moves: the game's own animations, played on the bones of a model that has them.
 // A pose is a rotation for each bone (a quaternion, relative to the bone it hangs from), then where the hips are.
 const POSE = BONES * 4 + 3;
 const BLEND = 0.3; // seconds to ease from one move into the next
@@ -323,8 +320,8 @@ async function load(name, model) {
 }
 
 function draw(model, seconds) {
-  // How far something closes on what it is heading for since this model was last drawn, when it should get
-  // most of the way there in `time` seconds. This keeps turns the same speed however often pictures are drawn.
+  // How far to close on a target since this model was last drawn, getting most of the way in `time` seconds.
+  // This keeps turns the same speed however often pictures are drawn.
   const passed = Math.min(0.1, seconds - (model.drawnAt ?? seconds));
   model.drawnAt = seconds;
   const towards = (time) => 1 - Math.exp(-passed / time);
@@ -450,12 +447,10 @@ function modelFor(name) {
 }
 
 /**
- * A canvas showing the named character as a turning 3D bust. It stays empty until the model has loaded,
- * and for good if WebGL is missing or the model fails.
- * With `watches`, the bust faces the pointer instead of turning by itself.
- * With `whole`, the whole figure comes as a box with the canvas inside: the box is the figure's place on
- * the page and can be dragged sideways to turn it. The canvas is larger than the box, so raised arms have
- * somewhere to go.
+ * A canvas showing the named character as a turning 3D bust. It stays empty until the model loads, and for
+ * good if WebGL is missing or the model fails. With `watches`, the bust faces the pointer instead of turning.
+ * With `whole`, the whole figure comes in a box that can be dragged sideways to turn it. The canvas is larger
+ * than the box, so raised arms have somewhere to go.
  */
 export function bust(name, title, { whole: wholeFigure = false, watches = false } = {}) {
   const canvas = document.createElement('canvas');

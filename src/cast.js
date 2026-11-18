@@ -1,6 +1,5 @@
-// The cast: the game's art. The 3D characters, their styles, Flood's commands and the icons beside the
-// headings. None of this is part of the public page. The site sends this script only to a visitor whose link carried the key (see lib/cast.js), and the
-// script then asks for the models with that same key.
+// The cast: the game's 3D characters, Flood's commands and the heading icons. Not part of the public
+// page: the site sends this script only to a visitor whose link carried the key (see lib/cast.js).
 import { act, bust, figureReady, useKey, useTone } from './bust.js';
 
 // The key came in this script's own address. It is taken off the page's address at once.
@@ -33,7 +32,6 @@ document.head.append(html('style', '', CAST_CSS));
 document.querySelector('.brand').prepend(bust('cryptos', ''));
 // Tyndall, beside the story of the game's end and return. She watches the pointer.
 document.querySelector('.intro').append(bust('tyndall', '', { watches: true }));
-// Flood stands by the footer.
 document.querySelector('footer').append(bust('flood', '', { whole: true }));
 
 // An icon from the game beside each heading.
@@ -59,7 +57,7 @@ for (const heading of document.querySelectorAll('h2')) {
 // A face from the game for each server. Decoration only: the servers are not tied to these sides.
 const FACES = { rejacked: ['lotus', ''], revived: ['general', ''], mxoemu: ['chessman', ''], openmxo: ['weaver', ''] };
 
-/** The page draws its cards and footer again whenever new numbers arrive. Each time, the faces go back on and the footer says whose art this is. */
+/** The page redraws its cards and footer when new numbers arrive, so the faces and art credit go back on each time. */
 function dress() {
   for (const head of document.querySelectorAll('.server-head[data-server]')) {
     const face = FACES[head.dataset.server];
@@ -75,7 +73,7 @@ function dress() {
 dress();
 document.addEventListener('mxo:render', dress);
 
-// ---- a line to tell Flood what to do, typed the way emotes are in the game ----
+// A line to tell Flood what to do, typed the way emotes are in the game.
 const SAID = {
   wave: 'Flood waves.',
   bow: 'Flood bows.',

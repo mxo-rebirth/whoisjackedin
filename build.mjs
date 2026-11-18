@@ -33,7 +33,7 @@ await build({
 // The theme script is tiny and runs before the page is drawn.
 await writeFile(path.join(out, 'assets', 'theme.js'), (await transform(await readFile(path.join(root, 'src', 'theme.js'), 'utf8'), { minify: true })).code);
 
-// The page script and the chart library become one file. Its name carries a hash, so a new version is never mixed up with an old one.
+// The page script and the chart library become one file, named with a hash so a new version never mixes with an old one.
 const bundle = await build({
   entryPoints: [path.join(root, 'src', 'app.js')],
   outdir: path.join(out, 'assets'),
@@ -65,8 +65,8 @@ const close = source.lastIndexOf('</style>');
 if (open < 0 || close < open || !source.includes(SCRIPT_TAG) || !source.includes(ABOUT_SLOT)) throw new Error('src/index.html needs one <style> block, the app script tag and an empty #about section');
 const css = (await transform(source.slice(open + 7, close), { loader: 'css', minify: true, legalComments: 'none' })).code.trim();
 
-// The server descriptions are written into the page, so search engines and readers without scripts get them too.
-// The page's script draws the same section again with the live status once it loads.
+// The server descriptions are written into the page, so search engines and readers without scripts get them.
+// The script redraws that section with the live status once it loads.
 const text = (value) => String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const tones = { rejacked: '--s1', revived: '--s2', mxoemu: '--s3', openmxo: '--s4' };
 const about = SERVERS.filter((server) => server.about)

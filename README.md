@@ -14,10 +14,15 @@ Live at https://whoisjackedin.com
 - A weekly pattern: which weekdays and hours are busy
 - A 90-day strip that shows how much each server was online
 - The busiest hours of the day
-- Past outages
+- Past outages, also marked on the chart as shaded bands. Pointing at one says which server was down
 - A short description of each server
+- Dark and light themes, each in green or blue
 
 The page calls players "operatives", as the game did.
+
+Before a link takes a visitor to a server's own site, a box says that this page cannot vouch for that site or its downloads. Ticking "Remember my choice" stops it asking in that browser.
+
+Two extras in the address: `?range=7d` opens a given range (`1h`, `24h`, `7d`, `30d`, `all`), and `?gaps` also lists short gaps, a few minutes in which a server's status page gave no clear answer.
 
 ## Where the numbers come from
 
@@ -39,12 +44,13 @@ The Discord member counts come from each Discord's public invite link, once an h
 - Until then the last real number is used. If the outage turns out to be real, those borrowed readings are taken back out of the day's totals.
 - An "asked too often" reply is ignored.
 - If the page cannot refresh, it keeps showing the last data and says from when it is.
+- On the chart, an outage is a gap in the line (no answer) or a drop to zero (the server said it was down).
 
 ## How it runs
 
 The site is on Vercel's free plan.
 
-- The page is `src/index.html` and `src/app.js`. The charts are drawn with Apache ECharts. `npm run build` packs both into `public/`, small and with no source maps.
+- The page is `src/index.html` and its script, `src/app.js` with the parts it draws in `src/page/`. The charts are drawn with Apache ECharts. `npm run build` packs it all into `public/`, small and with no source maps.
 - Days are counted in the visitor's own time zone, to the nearest hour.
 - The page arrives with the current numbers already in it: `api/page` fills them into the built page and the result is cached for a minute. Search engines and link previews get them too. The browser then keeps them fresh, once a minute.
 - `api/stats` gives the page its numbers.
@@ -69,11 +75,29 @@ npm start
 
 Run `npm install` once before the first start. Then open http://127.0.0.1:5177. It needs Node 26. Readings are saved in files under `data/kv`.
 
+`server.js` runs the same functions in `api/` that Vercel runs, with the rewrites and headers from `vercel.json`, so what works here works there. Two things differ: visits are not counted, and a timer takes the readings instead of the outside scheduler.
+
+To try the page on made-up history, with a few outages in it:
+
+```sh
+npm run seed -- /tmp/mxo-demo
+MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
+```
+
 | Setting | Default | What it does |
 |---|---|---|
 | `PORT` | `5177` | Port of the page |
 | `HOST` | `127.0.0.1` | Set to `0.0.0.0` to open it to your network |
 | `MXO_DATA_DIR` | `./data/kv` | Where the readings are saved |
+| `MXO_NO_TIMER` | not set | Set to `1` to take no readings of the real servers |
+
+## Tests
+
+```sh
+npm test
+```
+
+They use Node's own test runner, so there is nothing to install. They cover each server's feed reader, the rules for outages and records, the page as it is sent, and every address of the local server. The last group needs a build first (`npm run build`) and is skipped without one.
 
 ## Staying on the free plans
 
@@ -86,7 +110,9 @@ Checked on 17 November 2026.
 
 ## Visits
 
-The page tells the site once when it opens. The site saves one short line for that visit: the time, the country, phone or desktop, the site the visitor came from, and a short fingerprint that changes every day. No tracking cookies are set and no addresses are kept. The only cookie is `theme`, which remembers a visitor's choice of dark or light. Lines are kept for 90 days.
+The page tells the site once when it opens. The site saves one short line for that visit: the time, the country, phone or desktop, the site the visitor came from, and a short fingerprint that changes every day. No tracking cookies are set and no addresses are kept. Lines are kept for 90 days.
+
+What the page itself remembers, in the visitor's own browser: the cookies `theme` (dark or light) and `accent` (green or blue), and in the browser's storage the chosen range, the last numbers (to show something at once on the next visit) and "Remember my choice" for the link box.
 
 Once an hour the last 30 days are added up, and the foot of the page shows the totals: visits, how many countries they came from, and the share made on phones.
 
@@ -111,10 +137,12 @@ prints the numbers. It needs `CRON_SECRET` in `.env.local`.
 - `lib/page.js`: puts the current numbers into the page before it is sent
 - `api/`: the addresses the site answers on
 - `scripts/visitors.mjs`: prints the visit numbers
-- `src/`: the page and its script
+- `scripts/seed.mjs`: fills a folder with made-up history to try the page on
+- `src/`: the page and its script. `src/app.js` loads the numbers and keeps the page up to date; `src/page/` holds the parts it draws (the server cards, the main chart, the longer views, the descriptions) and what they share (colors, the hover box, dates and numbers in words)
+- `test/`: the tests
 - `build.mjs`: packs the page into `public/`
 - `tools/models/`: turns characters and animations from a game install into those files. Run `sh tools/models/make.sh "<game folder>"`
-- `server.js`: runs the site on your own computer
+- `server.js`: runs the site on your own computer, with the same functions as on Vercel
 
 ## Server descriptions
 

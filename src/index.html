@@ -155,9 +155,8 @@
   }
   * { box-sizing: border-box; }
   /* Nothing may make the page scroll sideways.
-     The page's color is a fade between two shades too close to tell apart. A browser fills a strip of plain
-     color directly and draws a strip with anything in it as a picture, and on some screens the two come out
-     as different shades, which showed as a band behind the footer. With the fade no strip is plain. */
+     The page's color is a fade between two near-equal shades: on some screens a plain strip and a strip with
+     content came out as different shades, a band behind the footer. With the fade no strip is plain. */
   html { background: linear-gradient(var(--page), var(--page-2)) var(--page); overflow-x: clip; }
   body { overflow-x: clip; margin: 0; color: var(--ink); font: var(--t-body)/1.55 var(--mono); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; }
   #rain {
@@ -289,6 +288,8 @@
   .empty { position: absolute; inset: 14px 16px 84px 40px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--ink-2); padding: 0 16px; pointer-events: none; }
   .tip-when { color: var(--ink); font-weight: 600; }
   .tip-what { margin-bottom: 5px; font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--muted); }
+  /* A server that was down at the moment pointed at. */
+  .tip-note { margin-bottom: 5px; font-weight: 600; color: var(--down); }
   .tip-row { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; }
   .tip-row .name { color: var(--ink-2); }
   .tip-row strong { font-weight: 600; text-align: right; padding-left: 10px; }

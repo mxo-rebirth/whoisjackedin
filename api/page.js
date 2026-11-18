@@ -1,8 +1,7 @@
-// Serves the page itself, with the current numbers already in it. Cached for a minute.
-// A request that carries the key gets the page with the game art's script added (see lib/cast.js). The key
-// comes in the link (?rsi=...) or in the cookie a good link leaves behind. Requests with that cookie reach
-// this function by their own rewrite in vercel.json, so the cached public page never answers them, and
-// the private answer is never cached, so it cannot reach anyone else.
+// Serves the page with the current numbers already in it, cached for a minute. A request with the key
+// (see lib/cast.js) also gets the game art's script. Requests with the key's cookie reach this function by
+// their own rewrite in vercel.json, so the cached public page never answers them, and the private answer
+// is never cached, so it cannot reach anyone else.
 import { readFile } from 'node:fs/promises';
 import { castOf, withCast } from '../lib/cast.js';
 import { buildStats } from '../lib/core.js';
@@ -10,9 +9,12 @@ import { renderPage } from '../lib/page.js';
 
 let template = null;
 
-/** The built page. It travels with this function; if it somehow does not, it is fetched from the site. */
+/**
+ * The built page travels with this function; if it somehow does not, it is fetched from the site.
+ * Read once on Vercel, but every time locally, so a new build shows at once.
+ */
 async function loadTemplate(req) {
-  if (template) return template;
+  if (template && process.env.VERCEL) return template;
   try {
     template = await readFile(new URL('../public/page.html', import.meta.url), 'utf8');
   } catch {
@@ -37,7 +39,9 @@ export default async function handler(req, res) {
     // Without numbers the page still works: its script fetches them.
     console.error(err);
   }
-  const { key, cookie } = castOf(typeof req.query?.rsi === 'string' ? req.query.rsi : null, req.headers.cookie);
+  // The cookie is marked Secure unless the page came over plain http, as it does on your own computer.
+  const secure = req.headers['x-forwarded-proto'] !== 'http';
+  const { key, cookie } = castOf(typeof req.query?.rsi === 'string' ? req.query.rsi : null, req.headers.cookie, { secure });
   if (cookie) res.setHeader('set-cookie', cookie);
   res.setHeader('content-type', 'text/html; charset=utf-8');
   // Anything that depends on the visitor, or sets a cookie, is for that visitor only.

@@ -1,98 +1,118 @@
-// Runs the stats page on your own machine: same code as on Vercel, with files for storage and a built-in timer.
+// Runs the site locally the way Vercel does: the same api/ functions, vercel.json's rewrites and headers,
+// and public/. Storage is a folder of files; a timer takes the samples the outside scheduler takes live.
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 5177);
 const HOST = process.env.HOST ?? '127.0.0.1';
-// The built page. `npm start` builds it first.
 const PUBLIC = path.join(ROOT, 'public');
 // Without Redis settings in the environment, samples go to files in this folder.
 process.env.MXO_DATA_DIR ??= path.join(ROOT, 'data', 'kv');
 
-const { SAMPLE_MS, buildStats, collect } = await import('./lib/core.js');
-const { renderPage } = await import('./lib/page.js');
-const { castFile, castOf, hasCastKey, withCast } = await import('./lib/cast.js');
-
-// The same security headers as on Vercel, so a page that works here works there.
+const { SAMPLE_MS, collect } = await import('./lib/core.js');
 const config = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
-const SHARED_HEADERS = Object.fromEntries(config.headers[0].headers.map(({ key, value }) => [key.toLowerCase(), value]));
-const PAGE_HEADERS = { ...SHARED_HEADERS, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' };
-// robots.txt and sitemap.xml sit beside the page.
-const ROOT_FILES = { '/robots.txt': 'text/plain; charset=utf-8', '/sitemap.xml': 'application/xml; charset=utf-8' };
-const ASSET_TYPES = { '.js': 'text/javascript; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.bin': 'application/octet-stream' };
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+};
+
+const cookiesOf = (header) => Object.fromEntries(String(header ?? '').split(/;\s*/).filter(Boolean).map((pair) => [pair.split('=')[0], pair.slice(pair.indexOf('=') + 1)]));
+
+/**
+ * The address after vercel.json's rewrites. As on Vercel, the query of the original address is kept, and a
+ * cookie that a rule looks for is handed on as a query value of the same name.
+ */
+function rewrite(url, cookies) {
+  for (const rule of config.rewrites ?? []) {
+    if (rule.source !== url.pathname) continue;
+    const needs = (rule.has ?? []).filter((condition) => condition.type === 'cookie');
+    if (!needs.every((condition) => condition.key in cookies)) continue;
+    const next = new URL(rule.destination, url);
+    for (const [name, value] of url.searchParams) if (!next.searchParams.has(name)) next.searchParams.set(name, value);
+    for (const condition of needs) next.searchParams.set(condition.key, cookies[condition.key]);
+    return next;
+  }
+  return url;
+}
+
+/** Adds what Vercel's functions expect: req.query, req.body, res.status(), res.json(), res.send(). */
+function vercelStyle(req, res, url, body) {
+  req.query = Object.fromEntries(url.searchParams);
+  req.body = body;
+  res.status = (code) => {
+    res.statusCode = code;
+    return res;
+  };
+  res.json = (value) => {
+    if (!res.getHeader('content-type')) res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify(value));
+  };
+  res.send = (value) => {
+    if (!res.getHeader('content-type')) res.setHeader('content-type', typeof value === 'string' ? 'text/html; charset=utf-8' : 'application/octet-stream');
+    res.end(value);
+  };
+}
+
+/** A POST body sent as JSON, as Vercel reads it. Anything else gives undefined. */
+async function readBody(req) {
+  if (req.method !== 'POST' || !String(req.headers['content-type']).startsWith('application/json')) return undefined;
+  let text = '';
+  for await (const chunk of req) {
+    text += chunk;
+    if (text.length > 10_000) return undefined;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+const functions = new Map();
+/** The function in api/ with this name, or null. */
+async function functionFor(name) {
+  if (!/^[a-z]+$/.test(name)) return null;
+  if (!functions.has(name)) {
+    const file = path.join(ROOT, 'api', `${name}.js`);
+    functions.set(name, await import(pathToFileURL(file)).then((module) => module.default).catch(() => null));
+  }
+  return functions.get(name);
+}
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost');
-  // Visits are only counted on the real site. Here the call is answered and dropped.
-  if (req.method === 'POST' && url.pathname === '/api/hit') {
-    res.writeHead(204).end();
-    return;
-  }
-  if (req.method !== 'GET') {
-    res.writeHead(405, { allow: 'GET' }).end();
-    return;
-  }
-  if (url.pathname === '/') {
-    try {
-      const page = await readFile(path.join(PUBLIC, 'page.html'), 'utf8');
-      // As on the site: the page is sent with the current numbers already in it.
-      let body = page;
-      try {
-        body = renderPage(page, await buildStats('24h', 0));
-      } catch (err) {
-        console.warn(err.message);
-      }
-      // As on the site: with the key in the address, or in the cookie a good link left, the page comes with
-      // the game art's script.
-      const { key, cookie } = castOf(url.searchParams.get('rsi'), req.headers.cookie, { secure: false });
-      res.writeHead(200, cookie ? { ...PAGE_HEADERS, 'set-cookie': cookie } : PAGE_HEADERS).end(key ? withCast(body, key) : body);
-    } catch {
-      res.writeHead(500, { 'content-type': 'text/plain' }).end('public/page.html is missing. Run "npm run build" first.');
+  const url = rewrite(new URL(req.url, `http://${req.headers.host ?? 'localhost'}`), cookiesOf(req.headers.cookie));
+  for (const { key, value } of config.headers?.[0]?.headers ?? []) res.setHeader(key, value);
+  try {
+    const name = /^\/api\/([^/]+)$/.exec(url.pathname)?.[1];
+    if (name) {
+      // Visits are only counted on the real site. Here the call is answered and dropped.
+      if (name === 'hit') return void res.writeHead(204).end();
+      const handler = await functionFor(name);
+      if (!handler) return void res.writeHead(404).end();
+      // The functions ask for a Secure cookie only when the page came over https.
+      req.headers['x-forwarded-proto'] = 'http';
+      vercelStyle(req, res, url, await readBody(req));
+      return void (await handler(req, res));
     }
-    return;
+    // Everything else is a built file. A path that tries to leave public/ is not found.
+    if (req.method !== 'GET' && req.method !== 'HEAD') return void res.writeHead(405, { allow: 'GET, HEAD' }).end();
+    const file = path.join(PUBLIC, path.normalize(decodeURIComponent(url.pathname)));
+    if (!file.startsWith(PUBLIC + path.sep) || !TYPES[path.extname(file)]) return void res.writeHead(404).end();
+    const body = await readFile(file).catch(() => null);
+    if (!body) return void res.writeHead(404).end();
+    res.writeHead(200, { 'content-type': TYPES[path.extname(file)], 'cache-control': 'no-cache' }).end(body);
+  } catch (err) {
+    console.warn(err);
+    if (!res.headersSent) res.writeHead(500, { 'content-type': 'text/plain' });
+    res.end('Something went wrong. If public/page.html is missing, run "npm run build" first.');
   }
-  if (ROOT_FILES[url.pathname]) {
-    try {
-      res.writeHead(200, { ...SHARED_HEADERS, 'content-type': ROOT_FILES[url.pathname] }).end(await readFile(path.join(PUBLIC, url.pathname)));
-    } catch {
-      res.writeHead(404).end();
-    }
-    return;
-  }
-  // Only plain file names inside public/assets are served.
-  const asset = /^\/assets\/((?:icons\/)?[\w.-]+)$/.exec(url.pathname)?.[1];
-  if (asset && ASSET_TYPES[path.extname(asset)]) {
-    try {
-      const body = await readFile(path.join(PUBLIC, 'assets', asset));
-      res.writeHead(200, { ...SHARED_HEADERS, 'content-type': ASSET_TYPES[path.extname(asset)], 'cache-control': 'no-cache' }).end(body);
-    } catch {
-      res.writeHead(404).end();
-    }
-    return;
-  }
-  // The 3D characters' files, only with the key. Here the key is "local" (see lib/cast.js).
-  if (url.pathname === '/api/model') {
-    const file = castFile(url.searchParams.get('f'));
-    const body = file && hasCastKey(url.searchParams.get('k')) ? await readFile(path.join(ROOT, file.path)).catch(() => null) : null;
-    if (body) res.writeHead(200, { 'content-type': file.type, 'cache-control': 'no-cache' }).end(body);
-    else res.writeHead(404).end();
-    return;
-  }
-  if (url.pathname === '/api/stats') {
-    try {
-      const tz = Number(url.searchParams.get('tz') ?? 0);
-      const body = JSON.stringify(await buildStats(url.searchParams.get('range') ?? '', Number.isInteger(tz) && tz >= -12 && tz <= 14 ? tz : 0));
-      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(body);
-    } catch (err) {
-      console.warn(err.message);
-      res.writeHead(500, { 'content-type': 'application/json' }).end('{"error":"stats are not available right now"}');
-    }
-    return;
-  }
-  res.writeHead(404).end();
 });
 
 async function tick() {

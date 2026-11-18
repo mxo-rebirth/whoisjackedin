@@ -1,11 +1,11 @@
-/* Styles for the game's art: the 3D characters and the icons. They travel with the script that brings them, not with the public page. */
+/* Styles for the game's art. They travel with the script that brings it, not with the public page. */
 
 /* A character fades in once it has loaded. One that is already loaded, on a card drawn again, appears at once. */
 .face, .figure canvas { opacity: 0; transition: opacity 0.9s ease-out; }
 .face.in, .figure canvas.in { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .face, .figure canvas { transition: none; } }
 
-/* Icons from the game, 32 pixels square, beside each heading. Shown at whole multiples so the pixels stay sharp. */
+/* The game's icons are 32 pixels square; shown at whole multiples so the pixels stay sharp. */
 .glyph { display: block; width: 32px; height: 32px; border-radius: 3px; image-rendering: pixelated; }
 :root[data-cast] h2 { grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; }
 h2 .glyph { grid-row: 1 / span 2; }

@@ -8,8 +8,8 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
-  // Only the page itself reports visits. A browser says where a request comes from, twice over. A script
-  // that does not say so is answered the same way and not counted.
+  // Only the page itself reports visits: a browser says where a request comes from, in two headers.
+  // A script that does not is answered the same way, just not counted.
   let fromPage = false;
   try {
     fromPage = req.headers['sec-fetch-site'] === 'same-origin' && new URL(req.headers.origin).host === req.headers.host;
