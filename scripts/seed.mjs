@@ -53,7 +53,6 @@ for (let t = now - DAYS * DAY; t <= now; t += MINUTE) {
 const file = (key) => path.join(dir, key.replace(/[^A-Za-z0-9._-]/g, '_'));
 for (const [day, text] of raw) await writeFile(file(rawKey(day)), text);
 for (const [day, data] of hours) await writeFile(file(hoursKey(day)), JSON.stringify(data));
-state.page = { visits: 1240, visitors: 412, countries: 23, phones: 471, at: now };
 state.community = { triedAt: now, byId: {} };
 await writeFile(file(STATE_KEY), JSON.stringify(state));
 console.log(`seeded ${DAYS} days into ${dir}. The page takes a fresh sample once the last one is 90 seconds old.`);

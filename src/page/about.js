@@ -100,18 +100,9 @@ export function renderFooter() {
   const legal = html('p', '', 'fan page, not run by the server teams or the owners of The Matrix Online');
   const care = html('p', '', 'not connected to any server project, and no promise that their clients or downloads are safe');
   $('footer').replaceChildren(sources, rule, legal, care);
-  // A few facts about this page itself: how long it has been recording, and who came by.
+  // Visit totals stay private (npm run visitors); only the start of the record is shown.
   const facts = [];
   if (stats.since) facts.push(`recording since ${fullDateFmt.format(stats.since)}`);
-  const page = stats.page;
-  // Shown once there is something to show: a handful of visits says little.
-  if (page?.visits30 >= 100) {
-    const visits = [`${page.visits30.toLocaleString()} ${page.visits30 === 1 ? 'visit' : 'visits'} in 30 days`];
-    if (page.countries30) visits.push(`${page.countries30} ${page.countries30 === 1 ? 'country' : 'countries'}`);
-    if (page.phoneShare30 != null) visits.push(`${page.phoneShare30}% on phones`);
-    visits.push('counted without cookies');
-    facts.push(visits.join(' · '));
-  }
   $('page-facts').replaceChildren(...facts.map((fact) => html('p', '', fact)));
   $('page-facts').hidden = !facts.length;
 }

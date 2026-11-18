@@ -129,7 +129,7 @@ if (process.env.MXO_NO_TIMER !== '1') {
 }
 
 server.listen(PORT, HOST, () => {
-  console.log(`MxO stats: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`Who is jacked in: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
   console.log(`Samples are saved in ${process.env.MXO_DATA_DIR}`);
 });
 

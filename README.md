@@ -1,95 +1,58 @@
-# MxO stats
+# Who is jacked in: MxO server stats
 
-A fan-made page that shows how many people are playing on the Matrix Online community servers (private servers run by fans): Rejacked, MxO Revived, MxOEmu and openMXO. The page is independent of all of them and says so: it does not vouch for their software.
+A small fan page that shows how many people are playing on the Matrix Online community servers right now: Rejacked, MxO Revived, MxOEmu and openMXO. It isn't connected to any of them, and it says so before sending anyone to their sites.
 
-Live at https://whoisjackedin.com
+👉 https://whoisjackedin.com
 
-## What it shows
+The code lives in the private repo `hesitancy9996/whoisjackedin`, and the site is the Vercel project `whoisjackedin`.
 
-- Who is online right now, per server and in total, next to the 24-hour peak and the all-time peak
-- A ranking by players and by uptime
-- A chart of players over time, as lines or stacked. It shows averages, so the lines stay calm. Point at it to read the numbers next to the names, drag across it to zoom in for more detail
-- The most players seen each day
-- A table per server, by day or by month, with the peak, the average and how much each changed. Click a heading to sort
-- A weekly pattern: which weekdays and hours are busy
-- A 90-day strip that shows how much each server was online
-- The busiest hours of the day
-- Past outages, also marked on the chart as shaded bands. Pointing at one says which server was down
+## What you'll see
+
+- Who's online now, on each server and in total, plus the 24-hour and all-time peaks
+- A chart of players over time. Point at it for numbers, drag across it to zoom. Outages show as a dotted line
+- Day-by-day numbers, a weekly pattern, the busiest hours, uptime and past outages
 - A short description of each server
-- Dark and light themes, each in green or blue
+- Dark and light themes, in green or blue
 
-The page calls players "operatives", as the game did.
+Two handy extras for the address: `?range=7d` opens a time range (`1h`, `24h`, `7d`, `30d`, `all`), and `?gaps` also lists short blips where a server's status page didn't answer clearly.
 
-Before a link takes a visitor to a server's own site, a box says that this page cannot vouch for that site or its downloads. Ticking "Remember my choice" stops it asking in that browser.
-
-Two extras in the address: `?range=7d` opens a given range (`1h`, `24h`, `7d`, `30d`, `all`), and `?gaps` also lists short gaps, a few minutes in which a server's status page gave no clear answer.
+The page calls players "operatives", like the game did.
 
 ## Where the numbers come from
 
-Each server has a small public status page that its own website or launcher reads. This page reads the same thing once a minute.
+Every server has a public status page that its own site or launcher reads. This site reads the same ones once a minute:
 
-| Server | Address | What it tells us |
-|---|---|---|
-| Rejacked | `https://mxo-rejacked.com/api/launcher/v1` | online or not, player count, launcher version |
-| MxO Revived | `https://mxorevived.com/api/server-status` | status, player count |
-| MxOEmu | `https://mxoemu.info/api/servers` | status, player count, players by district |
-| openMXO | `https://openmxo.com/forum/map/presence` | state of the server, and a list whose length is the player count (the list itself is never read or kept) |
+| Server | Status page |
+|---|---|
+| Rejacked | `https://mxo-rejacked.com/api/launcher/v1` |
+| MxO Revived | `https://mxorevived.com/api/server-status` |
+| MxOEmu | `https://mxoemu.info/api/servers` |
+| openMXO | `https://openmxo.com/forum/map/presence` (only the number of players is used, never who they are) |
 
-The Discord member counts come from each Discord's public invite link, once an hour.
+Discord member counts come from each server's public invite link, once an hour.
 
-## How it decides a server is down
+A server only counts as down after 15 bad answers in a row, about 15 minutes. A status page can say "maintenance" for a few minutes while everyone is still playing, so short blips don't count.
 
-- One odd answer is not enough. The page shows the last known number and keeps checking.
-- A server counts as down after 15 bad answers in a row, which is about 15 minutes. A status feed can say "maintenance" for a few minutes while everyone is still jacked in, so shorter spells are not outages.
-- Until then the last real number is used. If the outage turns out to be real, those borrowed readings are taken back out of the day's totals.
-- An "asked too often" reply is ignored.
-- If the page cannot refresh, it keeps showing the last data and says from when it is.
-- On the chart, an outage is a gap in the line (no answer) or a drop to zero (the server said it was down).
+## Run it on your computer
 
-## How it runs
-
-The site is on Vercel's free plan.
-
-- The page is `src/index.html` and its script, `src/app.js` with the parts it draws in `src/page/`. The charts are drawn with Apache ECharts. `npm run build` packs it all into `public/`, small and with no source maps.
-- Days are counted in the visitor's own time zone, to the nearest hour.
-- The page arrives with the current numbers already in it: `api/page` fills them into the built page and the result is cached for a minute. Search engines and link previews get them too. The browser then keeps them fresh, once a minute.
-- `api/stats` gives the page its numbers.
-- `api/collect` takes one reading of all the servers.
-- Readings are saved in an Upstash Redis database on its free plan.
-- A free cron service calls `api/collect` every minute. Vercel's free plan can only do that once a day by itself.
-
-## Set it up yourself
-
-1. Deploy it: `vercel deploy --prod`
-2. Add storage: in the Vercel dashboard, add an Upstash Redis database to the project, then deploy again.
-3. Set a secret: add `CRON_SECRET` to the project, with a long random text as its value.
-4. Add the cron job: at a service such as cron-job.org, call `https://<your-site>/api/collect` every minute with the header `Authorization: Bearer <CRON_SECRET>`.
-
-Without storage the page still works. It shows live numbers and no history.
-
-## Run it on your own computer
+You need Node 26. Run `npm install` once, then:
 
 ```sh
 npm start
 ```
 
-Run `npm install` once before the first start. Then open http://127.0.0.1:5177. It needs Node 26. Readings are saved in files under `data/kv`.
+and open http://127.0.0.1:5177. It reads the real servers once a minute and saves the readings under `data/kv`.
 
-`server.js` runs the same functions in `api/` that Vercel runs, with the rewrites and headers from `vercel.json`, so what works here works there. Two things differ: visits are not counted, and a timer takes the readings instead of the outside scheduler.
-
-To try the page on made-up history, with a few outages in it:
+Want to see it with made-up history (and a few outages) instead?
 
 ```sh
 npm run seed -- /tmp/mxo-demo
 MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 ```
 
-| Setting | Default | What it does |
-|---|---|---|
-| `PORT` | `5177` | Port of the page |
-| `HOST` | `127.0.0.1` | Set to `0.0.0.0` to open it to your network |
-| `MXO_DATA_DIR` | `./data/kv` | Where the readings are saved |
-| `MXO_NO_TIMER` | not set | Set to `1` to take no readings of the real servers |
+You can also set `PORT`, and `HOST=0.0.0.0` to open it to your network.
+
+The local server runs the same code as Vercel, so if it works here, it works there.
 
 ## Tests
 
@@ -97,53 +60,37 @@ MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 npm test
 ```
 
-They use Node's own test runner, so there is nothing to install. They cover each server's feed reader, the rules for outages and records, the page as it is sent, and every address of the local server. The last group needs a build first (`npm run build`) and is skipped without one.
+Nothing to install. One group starts the local server, so run `npm run build` first or it is skipped.
 
-## Staying on the free plans
+## Put it online yourself
 
-Checked on 17 November 2026.
+1. `vercel deploy --prod`
+2. In the Vercel dashboard, add an Upstash Redis database to the project, then deploy again
+3. Add a `CRON_SECRET` with a long random value
+4. At a service like cron-job.org, call `https://<your-site>/api/collect` every minute with the header `Authorization: Bearer <CRON_SECRET>`
 
-- Upstash's free plan holds 250 MB and allows 500,000 commands a month. The history that is kept for good grows by about half a megabyte a year, so storage is not the limit. Taking a reading every minute uses about 175,000 commands a month.
-- Vercel's Hobby plan allows 1,000,000 requests and 1,000,000 function runs a month. The every-minute reading uses about 43,000 of each.
-- The rest is visitors. The numbers only change once a minute, so the page asks for them once a minute and the answers are cached for a minute. Do not make either shorter without doing the sums again.
-- The "All" view reaches back one year. Older hourly totals are still stored. Extend the view before November 2027.
+Without the database the page still works. It just has no history.
 
-## Visits
+Commits must use an email that Vercel can match to your GitHub account, or Vercel blocks the deploy.
 
-The page tells the site once when it opens. The site saves one short line for that visit: the time, the country, phone or desktop, the site the visitor came from, and a short fingerprint that changes every day. No tracking cookies are set and no addresses are kept. Lines are kept for 90 days.
+## Staying free
 
-What the page itself remembers, in the visitor's own browser: the cookies `theme` (dark or light) and `accent` (green or blue), and in the browser's storage the chosen range, the last numbers (to show something at once on the next visit) and "Remember my choice" for the link box.
+Checked 17 November 2026: the every-minute reading uses about 175,000 of Upstash's 500,000 commands a month, and about 43,000 of Vercel's 1,000,000 requests. The rest is for visitors. Answers are cached for a minute, so please do the sums again before making that shorter.
 
-Once an hour the last 30 days are added up, and the foot of the page shows the totals: visits, how many countries they came from, and the share made on phones.
+The "All" view goes back one year. Older data is kept, so extend the view before November 2027.
 
-```sh
-npm run visitors
-```
+## Privacy
 
-prints the numbers. It needs `CRON_SECRET` in `.env.local`.
+Each visit is saved as one short line: the time, the country, phone or desktop, where the visitor came from, and a fingerprint that changes every day. No addresses, no tracking cookies, and lines are deleted after 90 days. `npm run visitors` shows the totals (it needs `CRON_SECRET` in `.env.local`).
 
-## What is saved
+The browser itself remembers the theme, the color and the "Together" switch (three cookies), the chosen range, the last numbers, and "Remember my choice" in the link box.
 
-- Every reading, kept for 9 days. This feeds the 1 hour, 24 hour and 7 day views. After that only the hourly totals remain.
-- Hourly totals, kept for good. They are tiny, about half a megabyte a year. This feeds the 30 day and "All" views, the day-by-day numbers, the weekly pattern, the busiest hours and the uptime strip.
-- The latest answers, the records and the outage list.
+## Where things are
 
-## Files
-
-- `lib/sources.js`: the servers, how to read each one, and their descriptions
-- `lib/store.js`: saving and loading, in Redis on Vercel and in files on your computer
+- `lib/sources.js`: the servers, how to read each one, and their descriptions (written from each team's own posts in November 2026; update them by hand)
 - `lib/core.js`: taking readings and working out the numbers
-- `lib/visits.js`: counting visits
-- `lib/page.js`: puts the current numbers into the page before it is sent
-- `api/`: the addresses the site answers on
-- `scripts/visitors.mjs`: prints the visit numbers
-- `scripts/seed.mjs`: fills a folder with made-up history to try the page on
-- `src/`: the page and its script. `src/app.js` loads the numbers and keeps the page up to date; `src/page/` holds the parts it draws (the server cards, the main chart, the longer views, the descriptions) and what they share (colors, the hover box, dates and numbers in words)
+- `lib/store.js`: saving, in Redis online and in files on your computer
+- `api/`: the site's addresses
+- `src/`: the page. `src/app.js` loads the numbers, `src/page/` draws each part
+- `scripts/`: the seeder and the visit counter
 - `test/`: the tests
-- `build.mjs`: packs the page into `public/`
-- `tools/models/`: turns characters and animations from a game install into those files. Run `sh tools/models/make.sh "<game folder>"`
-- `server.js`: runs the site on your own computer, with the same functions as on Vercel
-
-## Server descriptions
-
-The texts in "The servers" section are in `lib/sources.js`. They were written from each team's own posts in November 2026. Change them by hand when something changes.

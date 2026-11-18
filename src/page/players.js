@@ -277,9 +277,14 @@ export function renderPlayers() {
   for (const button of document.querySelectorAll('[data-mode]')) {
     button.setAttribute('aria-pressed', String((button.dataset.mode === 'stacked') === stacked));
   }
+  // The stacked view already shows the total as its top edge.
+  $('together-switch-box').hidden = stacked;
+  $('together-switch').setAttribute('aria-pressed', String(together));
 
   // The scale fits what is on show, so zooming in on a quiet period still fills the chart.
-  const topOf = (step) => (stacked ? shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0) : Math.max(0, ...shown.map((i) => step.mean[i] ?? 0)));
+  const sumOf = (step) => shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0);
+  // The "together" line needs room too, which squeezes the servers' lines; that is why it starts switched off.
+  const topOf = (step) => (stacked || together ? sumOf(step) : Math.max(0, ...shown.map((i) => step.mean[i] ?? 0)));
   const peak = Math.max(4, ...steps.filter((step) => step.end > view.from && step.start < view.to).map(topOf));
   const tick = niceStep(peak / 4, true);
   const yMax = Math.ceil(peak / tick) * tick;
@@ -312,6 +317,37 @@ export function renderPlayers() {
   }
   totals.push([to, null]);
 
+  // In the lines view an outage is drawn dotted from its exact start to its exact end: the solid line stops at
+  // the edges and a dotted one carries on, along zero when the server said it was down, or as a straight bridge
+  // when its feed gave no answer. The stacked view has no dotted lines, so it marks outages with bands.
+  const banded = shown.map((i) => (stacked ? servers[i].allTime.outages.filter((o) => o.to > from && o.from < to) : []));
+  const dotted = shown.map((i, k) => {
+    if (stacked) return [];
+    const outages = servers[i].allTime.outages
+      .filter((o) => o.to > from && o.from < to)
+      .map((o) => ({ ...o, from: Math.max(o.from, from), to: Math.min(o.to, to) }))
+      .sort((a, b) => a.from - b.from);
+    if (!outages.length) return [];
+    const known = tracks[k].filter(([, y]) => y !== null);
+    const inside = (x) => outages.some((o) => x >= o.from && x <= o.to);
+    const points = [];
+    const solid = tracks[k].filter(([x]) => !inside(x));
+    for (const o of outages) {
+      const before = known.filter(([x]) => x < o.from && !inside(x)).at(-1)?.[1] ?? null;
+      const after = known.find(([x]) => x > o.to && !inside(x))?.[1] ?? null;
+      const start = before ?? after ?? nudge(k);
+      const end = after ?? (o.kind === 'offline' ? nudge(k) : start);
+      // The solid line runs level to the edge, breaks, and starts again level at the other edge.
+      solid.push([o.from, start], [(o.from + o.to) / 2, null]);
+      if (after !== null) solid.push([o.to, after]);
+      const ground = nudge(k);
+      const path = o.kind === 'offline' ? [[o.from, start], [o.from, ground], [o.to, ground], [o.to, end]] : [[o.from, start], [o.to, end]];
+      points.push(...path, [o.to + 1, null]);
+    }
+    tracks[k] = solid.sort((a, b) => a[0] - b[0]);
+    return points;
+  });
+
   // A dot marks where each line is now.
   const live = [];
   if (!stacked && zoom.end > 99.9) {
@@ -324,6 +360,20 @@ export function renderPlayers() {
   const series = [
     // Never drawn. It gives the strip under the chart its shape.
     { id: 'total', type: 'line', data: totals, symbol: 'none', silent: true, animation: false, lineStyle: { opacity: 0 }, tooltip: { show: false } },
+    // All servers together: faint, behind the servers' own lines, and only when switched on.
+    {
+      id: 'together',
+      type: 'line',
+      data: !stacked && together ? totals : [],
+      smooth: 0.4,
+      smoothMonotone: 'x',
+      showSymbol: false,
+      silent: true,
+      animation: false,
+      z: 1,
+      lineStyle: { width: 1.25, color: INK.muted, opacity: 0.35 },
+      tooltip: { show: false },
+    },
     ...shown.map((i, k) => {
       const server = servers[i];
       const color = colorOf(server.id);
@@ -339,20 +389,35 @@ export function renderPlayers() {
         symbolSize: 9,
         z: stacked ? 10 - k : 3,
         itemStyle: { color, borderColor: INK.surface, borderWidth: 2 },
-        lineStyle: stacked ? { width: 1.5, color: INK.surface } : { width: 2, color },
-        areaStyle: stacked ? { opacity: 1, color: mix(color, INK.surface, 0.88) } : { opacity: 0 },
+        // Stacked layers: a bright line along each layer's top and a dim fill that fades towards the bottom,
+        // so the shape reads from its edges instead of from blocks of solid color.
+        lineStyle: { width: stacked ? 1.5 : 2, color },
+        areaStyle: stacked
+          ? { opacity: 1, color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: mix(color, INK.surface, 0.42) }, { offset: 1, color: mix(color, INK.surface, 0.14) }] } }
+          : { opacity: 0 },
         emphasis: { lineStyle: { width: stacked ? 1.5 : 2 } },
-        // A band in the server's color over each of its outages, where its line breaks or drops to nothing.
-        // Pointing at it says whose it is: the hover box gets a line like "MxO Revived down".
+        // Pointing at an outage, banded or dotted, adds a line like "MxO Revived down" to the hover box.
         markArea: {
           silent: true,
           animation: false,
-          itemStyle: { color, opacity: 0.16 },
+          itemStyle: { color, opacity: 0.08 },
           label: { show: false },
-          data: server.allTime.outages.filter((o) => o.to > from && o.from < to).map((o) => [{ xAxis: Math.max(o.from, from) }, { xAxis: Math.min(o.to, to) }]),
+          data: banded[k].map((o) => [{ xAxis: Math.max(o.from, from) }, { xAxis: Math.min(o.to, to) }]),
         },
       };
     }),
+    ...shown.map((i, k) => ({
+      id: `${servers[i].id}-down`,
+      type: 'line',
+      data: dotted[k],
+      smooth: false,
+      showSymbol: false,
+      silent: true,
+      animation: false,
+      z: 3,
+      lineStyle: { width: 2, type: [2, 4], cap: 'round', color: colorOf(servers[i].id) },
+      tooltip: { show: false },
+    })),
     {
       id: 'live',
       type: 'effectScatter',
@@ -412,6 +477,14 @@ export function renderPlayers() {
       .map((step) => serverRow(`${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`, step.mean, most)),
   );
 }
+
+// Kept in a cookie for a year, like the theme and the color.
+export let together = /(?:^|; )together=on(?:;|$)/.test(document.cookie);
+$('together-switch').addEventListener('click', () => {
+  together = !together;
+  document.cookie = `together=${together ? 'on' : 'off'}; max-age=31536000; path=/; SameSite=Lax`;
+  renderPlayers();
+});
 
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => {

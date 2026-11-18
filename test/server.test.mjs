@@ -22,7 +22,7 @@ before(async () => {
   const env = { ...process.env, MXO_DATA_DIR: dir, MXO_NO_TIMER: '1', PORT: String(PORT) };
   for (const name of ['CRON_SECRET', 'VERCEL', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN']) delete env[name];
   child = spawn(process.execPath, [path.join(ROOT, 'server.js')], { env, stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise((resolve) => child.stdout.on('data', (chunk) => String(chunk).includes('MxO stats') && resolve()));
+  await new Promise((resolve) => child.stdout.on('data', (chunk) => String(chunk).includes('Who is jacked in') && resolve()));
 });
 after(async () => {
   child?.kill();
@@ -60,6 +60,7 @@ only('the numbers, and the parameters they refuse', async () => {
   assert.equal(res.status, 200);
   const stats = await res.json();
   assert.equal(stats.history.range, '7d');
+  assert.ok(!('page' in stats), 'visit totals are not public');
   assert.equal((await get('/api/stats?range=7d&nope=1')).status, 400);
   assert.equal((await get('/api/stats?range=2y')).status, 400);
   assert.equal((await get('/api/stats?tz=99')).status, 400);
