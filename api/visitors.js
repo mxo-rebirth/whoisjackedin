@@ -21,7 +21,8 @@ export default async function handler(req, res) {
     res.status(401).json({ ok: false, error: 'not allowed' });
     return;
   }
-  const days = Math.min(90, Math.max(1, Number.parseInt(req.query?.days, 10) || 30));
+  // Up to ten years: after 90 days the answer comes from the daily totals kept for good.
+  const days = Math.min(3650, Math.max(1, Number.parseInt(req.query?.days, 10) || 30));
   try {
     res.status(200).json({ ok: true, ...(await visitSummary(days)) });
   } catch (err) {

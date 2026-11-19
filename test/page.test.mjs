@@ -18,6 +18,11 @@ test('the totals count only servers with a trusted answer', () => {
   assert.match(page, /id="total-note">2 of 3 servers online</);
 });
 
+test("Vercel's analytics script is added only when asked for", () => {
+  assert.ok(!renderPage(`${template}</body>`, stats).includes('insights'));
+  assert.match(renderPage(`${template}</body>`, stats, { analytics: true }), /<script defer src="\/_vercel\/insights\/script\.js"><\/script>\n<\/body>/);
+});
+
 test('nothing in the data can close the script tag it is handed over in', () => {
   const page = renderPage(template, stats);
   assert.ok(!page.includes('B</script>'));

@@ -49,8 +49,9 @@ export const ago = (t) => (stats.now - t < 90e3 ? 'just now' : `${duration(stats
 export function duration(ms) {
   const minutes = ms / 60000;
   if (minutes < 90) return `${Math.max(1, Math.round(minutes))} min`;
-  if (minutes < 48 * 60) return `${(minutes / 60).toFixed(1)} h`;
-  return `${(minutes / 1440).toFixed(1)} days`;
+  if (minutes < 24 * 60) return `${(minutes / 60).toFixed(1)} h`;
+  const days = Number((minutes / 1440).toFixed(1));
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
 export function niceStep(raw, wholeNumbers) {

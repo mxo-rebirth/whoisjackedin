@@ -165,6 +165,9 @@ document.addEventListener('visibilitychange', () => document.hidden || load());
 
 startRain();
 
+// The site can be installed as an app. Not on your own computer, where a kept copy would hide fresh builds.
+if ('serviceWorker' in navigator && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
 {
   const root = document.documentElement;
   const button = $('theme-switch');

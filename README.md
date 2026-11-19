@@ -81,7 +81,7 @@ The "All" view goes back one year. Older data is kept, so extend the view before
 
 ## Privacy
 
-Each visit is saved as one short line: the time, the country, phone or desktop, where the visitor came from, and a fingerprint that changes every day. No addresses, no tracking cookies, and lines are deleted after 90 days. `npm run visitors` shows the totals (it needs `CRON_SECRET` in `.env.local`).
+Each visit is saved as one short line: the time, the country, phone or desktop, where the visitor came from, and a fingerprint that changes every day. No addresses, no tracking cookies, and the lines are deleted after 90 days. Each day's totals (counts only) are kept for good. `npm run visitors` shows them, for example `npm run visitors -- 365` for a year (it needs `CRON_SECRET` in `.env.local`).
 
 The browser itself remembers the theme, the color and the "Together" switch (three cookies), the chosen range, the last numbers, and "Remember my choice" in the link box.
 

@@ -1,4 +1,4 @@
-// Prints the site's visit numbers. Run "npm run visitors" (or "npm run visitors -- 7" for the last 7 days).
+// Prints the site's visit numbers. Run "npm run visitors", or "npm run visitors -- 365" for a year.
 // It reads CRON_SECRET from .env.local and never prints it.
 import { readFile } from 'node:fs/promises';
 

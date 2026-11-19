@@ -79,6 +79,13 @@ only('built files are served, nothing outside public/ is', async () => {
   const script = (await readdir(path.join(ROOT, 'public', 'assets'))).find((name) => /^app-.+\.js$/.test(name));
   assert.equal((await get(`/assets/${script}`)).status, 200);
   assert.equal((await get('/robots.txt')).status, 200);
+  // The app: its manifest, icons and service worker, and a security policy that lets the manifest load.
+  const manifest = await get('/manifest.webmanifest');
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers.get('content-security-policy'), /manifest-src 'self'/);
+  const app = await manifest.json();
+  for (const icon of app.icons) assert.equal((await get(icon.src)).status, 200, icon.src);
+  assert.equal((await get('/sw.js')).status, 200);
   for (const address of ['/../package.json', '/%2e%2e/package.json', '/api/nothing', '/server.js']) assert.equal((await get(address)).status, 404, address);
   assert.equal((await fetch(`${base}/api/hit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 204);
   assert.equal((await get('/api/collect')).status, 401, 'the sampler needs the secret, as on the site');

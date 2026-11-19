@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { SERVERS } from './lib/sources.js';
+import { iconPng } from './lib/icons.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(root, 'public');
@@ -15,6 +16,30 @@ await mkdir(path.join(out, 'assets'), { recursive: true });
 // Only the link-preview picture is public. The game's art lives in art/, outside git, and only api/model.js hands it out.
 await mkdir(path.join(out, 'assets', 'icons'), { recursive: true });
 await cp(path.join(root, 'src', 'og.jpg'), path.join(out, 'assets', 'icons', 'og.jpg'));
+// The site as an app: icons drawn from the favicon, the manifest, and the service worker at the top level so it
+// covers the whole site.
+for (const [name, size, maskable] of [['app-192', 192, false], ['app-512', 512, false], ['app-maskable-512', 512, true], ['app-180', 180, true]]) {
+  await writeFile(path.join(out, 'assets', 'icons', `${name}.png`), iconPng(size, { maskable }));
+}
+await writeFile(
+  path.join(out, 'manifest.webmanifest'),
+  JSON.stringify({
+    name: 'Who is jacked in: MxO server stats',
+    short_name: 'Jacked in',
+    description: 'Live player counts for the Matrix Online community servers.',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#030604',
+    theme_color: '#030604',
+    icons: [
+      { src: '/assets/icons/app-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/assets/icons/app-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/assets/icons/app-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+  }),
+);
+await writeFile(path.join(out, 'sw.js'), (await transform(await readFile(path.join(root, 'src', 'sw.js'), 'utf8'), { minify: true })).code);
 // The 3D characters are not part of the public page: no models, script or styles for them go into public/.
 // Their script is built into private/, which only api/model.js reads, and only for a visitor with the key.
 const hidden = path.join(root, 'private');
