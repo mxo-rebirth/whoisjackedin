@@ -62,6 +62,6 @@ The browser keeps the theme, color, "Together" switch, range, last numbers and d
 
 ## License
 
-The code is MIT licensed, see [LICENSE](LICENSE). Charts by Apache ECharts (Apache 2.0). All licenses are in `/assets/licenses.txt` on the site.
+The code is MIT licensed, see [LICENSE](LICENSE). Charts by Apache ECharts (Apache 2.0). The build collects every bundled package's license into `/assets/licenses.txt`.
 
 The Matrix Online is a trademark of Warner Bros. Entertainment Inc. This fan project is not affiliated with or endorsed by Warner Bros. or any of the server teams.

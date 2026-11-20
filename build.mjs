@@ -59,7 +59,7 @@ const bundle = await build({
 });
 const script = path.basename(Object.keys(bundle.metafile.outputs).find((name) => name.endsWith('.js')));
 
-// The chart library's license asks that its notices travel with it.
+// Every package bundled into the page's script, with the notices their licenses ask to travel with them.
 const notice = async (title, ...file) => `${title}\n${'='.repeat(title.length)}\n\n${(await readFile(path.join(root, 'node_modules', ...file), 'utf8')).trim()}\n`;
 await writeFile(
   path.join(out, 'assets', 'licenses.txt'),
@@ -68,6 +68,8 @@ await writeFile(
     await notice('Apache ECharts', 'echarts', 'LICENSE'),
     await notice('Apache ECharts, notice', 'echarts', 'NOTICE'),
     await notice('ZRender', 'zrender', 'LICENSE'),
+    await notice('d3 (parts used inside ECharts)', 'echarts', 'licenses', 'LICENSE-d3'),
+    await notice('tslib', 'tslib', 'LICENSE.txt'),
   ].join('\n\n'),
 );
 
