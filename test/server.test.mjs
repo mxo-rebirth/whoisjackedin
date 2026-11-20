@@ -81,6 +81,8 @@ only('the private files need the key', async () => {
   // A copy without the built characters answers "not found" here too.
   if (existsSync(path.join(ROOT, 'art', 'models', 'flood.bin'))) assert.equal((await get('/api/model?f=flood.bin&k=HL-0000-0000-0000-0000-0000')).status, 200);
   assert.equal((await get('/api/model?f=flood.bin')).status, 404);
+  const script = await get('/api/model?f=cast.js&k=HL-0000-0000-0000-0000-0000');
+  if (script.status === 200) assert.equal(script.headers.get('cache-control'), 'private, no-cache', 'the script is checked for a newer one every time');
   assert.equal((await get('/api/model?f=../.env.local&k=HL-0000-0000-0000-0000-0000')).status, 404);
 });
 

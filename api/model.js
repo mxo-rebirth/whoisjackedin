@@ -15,7 +15,9 @@ export default async function handler(req, res) {
   try {
     const body = await readFile(new URL(`../${file.path}`, import.meta.url));
     res.setHeader('content-type', file.type);
-    res.setHeader('cache-control', 'private, max-age=600');
+    // The script changes with each release, so the browser checks for a newer one every time. Models and pictures
+    // rarely change and may be kept for ten minutes.
+    res.setHeader('cache-control', query.f === 'cast.js' ? 'private, no-cache' : 'private, max-age=600');
     res.status(200).send(body);
   } catch {
     res.setHeader('cache-control', 'no-store');

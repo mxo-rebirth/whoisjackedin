@@ -221,6 +221,10 @@
   @media (max-width: 920px) {
     header:has(.own-links) .brand { padding-top: 42px; }
   }
+  /* On a phone the corner link is small, so the title moves up to just below it. */
+  @media (max-width: 700px) {
+    header:has(.own-links) .brand { padding-top: 30px; }
+  }
   .about .server-head { margin: -8px 0 14px; }
   h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
   .eyebrow { font-size: var(--t-label); letter-spacing: var(--track); text-transform: uppercase; color: var(--ink-2); }
