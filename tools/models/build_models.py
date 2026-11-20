@@ -57,13 +57,45 @@ def mesh(data):
     # Best agreement first, then the fewest unexplained bytes after the triangles.
     fits.sort(key=lambda f: (f[0], f[1]))
     _, _, stride, noff, start, verts, idx = fits[0]
-    return verts, idx, skin_of(data, nv, stride, noff, start)
+    return verts, idx, skin_of(data, nv, stride, noff, start, start + nv * stride + nt * 6, end)
 
-def skin_of(data, nv, stride, noff, start):
+def bone_sets(data, after, end, nv):
+    """The engine's "bone sets", which follow a mesh's triangles: the points are divided into runs, and each
+    run names the up to four bones its points follow (255 for none). Returns [(first point, how many, bones)],
+    or None when the bytes there are something else."""
+    if end - after < 16:
+        return None
+    n = struct.unpack_from('<I', data, after)[0]
+    if not 0 < n < 256 or end - after != 4 + 12 * n:
+        return None
+    sets = [struct.unpack_from('<HH4B', data, after + 4 + 12 * k) for k in range(n)]
+    # The runs cover every point once, and name only bones the skeleton has.
+    at = 0
+    for first, count, *bones in sorted(sets):
+        if first != at or any(b != 255 and b >= len(BONES) for b in bones):
+            return None
+        at += count
+    return [(first, count, bones) for first, count, *bones in sets] if at == nv else None
+
+def skin_of(data, nv, stride, noff, start, after, end):
     """For each point, the bones it follows and how strongly: [(bone number, weight), ...].
-    A skinned point stores its weights (all but the last) and up to four bone numbers between its position and
-    its normal. Those numbers index a short list of the skeleton's bones that sits right before the points.
-    A rigid mesh follows a single bone, named in the same place. None when no such list is found."""
+    Clothes and bodies come with bone sets (see bone_sets): a point stores its weights for its run's bones, all
+    but the last, between its position and its normal. Without these a moving figure's clothes tear: they
+    cannot be guessed from where the points lie.
+    Other meshes store the weights and up to four bone numbers there. Those numbers index a short list of the
+    skeleton's bones that sits right before the points. A rigid mesh follows a single bone, named in the same
+    place. None when none of these is found."""
+    sets = bone_sets(data, after, end, nv)
+    count = struct.unpack_from('<I', data, 0x23)[0] - 1  # weights kept per point: one fewer than the bones a triangle may use
+    if sets and 0 <= count <= 3 and noff == 12 + 4 * count:
+        skin = [None] * nv
+        for first, n, bones in sets:
+            for i in range(first, first + n):
+                weights = list(struct.unpack_from('<%df' % count, data, start + i * stride + 12)) if count else []
+                weights.append(max(0.0, 1.0 - sum(weights)))
+                skin[i] = [(bones[k], w) for k, w in enumerate(weights) if w > 0.001 and bones[k] != 255]
+        if all(skin):
+            return skin
     bones = None
     for n in range(1, 40):
         if start - 4 * n - 4 < 0x2b:
@@ -257,22 +289,6 @@ def nearest_bones(verts, bones):
         skin.append([(best, 1.0)])
     return skin
 
-def soft_neck(verts, skin, bones):
-    """The game ties each point of the neck's skin to one bone, so a turned head shows a seam and a bulge
-    where it meets the neck. Here the neck's skin follows the neck bone at its base and the head bone at its
-    top, and shares the turn in between, as a real neck twists."""
-    neck, head = BONES.index('Neck'), BONES.index('Head')
-    low = bones[neck]['joint'][1] + 0.3 * (bones[head]['joint'][1] - bones[neck]['joint'][1])
-    high = bones[head]['joint'][1] - 0.4
-    out = []
-    for v, follow in zip(verts, skin):
-        if len(follow) == 1 and follow[0][0] in (neck, head) and v[1] > low:
-            share = min(1.0, (v[1] - low) / (high - low))
-            share = share * share * (3 - 2 * share)
-            follow = [(head, share), (neck, 1 - share)] if share < 1 else [(head, 1.0)]
-        out.append(follow)
-    return out
-
 def place(verts, m):
     out = []
     for x, y, z, nx, ny, nz, u, v in verts:
@@ -386,8 +402,6 @@ def build(name, moa_path, full=False, moves=None):
             skin = [[(BONES.index(space), 1.0)]] * len(verts)
         elif posed and (skin is None or all(b == 0 for follow in skin for b, _ in follow)):
             skin = nearest_bones(verts, skeleton_of(skeleton))
-        if posed and space == 'body' and 'neck' in e[2].lower():
-            skin = soft_neck(verts, skin, skeleton_of(skeleton))
         if posed:
             # Each point also carries up to four bones and their weights, so the page can pose the figure.
             wide = []

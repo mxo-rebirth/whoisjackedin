@@ -75,6 +75,9 @@ void main() {
   }
   if (see < uCut) discard;
   vec3 n = normalize(vNrm);
+  // Hair is made of thin strips, some seen from behind. Lit as they are, they would face away and take the full
+  // edge light, showing as pale sheets. A strip seen from behind is lit as if it faced the viewer.
+  if (n.z < 0.0) n = -n;
   float key = max(dot(n, normalize(vec3(-0.45, 0.5, 0.75))), 0.0);
   float fill = max(dot(n, normalize(vec3(0.7, 0.1, 0.5))), 0.0);
   float rim = pow(1.0 - max(n.z, 0.0), 2.0);
@@ -183,7 +186,7 @@ function play(body, move, seconds, rounds = 1) {
 }
 
 /**
- * The body's pose now. It stands the way its set of moves says (Flood as the game's "regal" characters
+ * The body's pose now. It stands the way its set of moves says (the footer figure as the game's "regal" characters
  * do, hands behind the back) and now and then shifts or looks around. A move that was asked for plays
  * once, then it stands again.
  */

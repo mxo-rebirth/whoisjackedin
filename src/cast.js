@@ -1,4 +1,4 @@
-// The cast: the game's 3D characters, Flood's commands and the heading icons. Not part of the public
+// The cast: the game's 3D characters, the footer figure's commands and the heading icons. Not part of the public
 // page: the site sends this script only to a visitor whose link carried the key (see lib/cast.js).
 import { act, bust, figureReady, useKey, useTone } from './bust.js';
 
@@ -28,7 +28,7 @@ matchTone();
 new MutationObserver(matchTone).observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent'] });
 document.head.append(html('style', '', CAST_CSS));
 
-// Cryptos, by the title: the exile program who decides who gets in.
+// Characters from the game's own story, none from the films. Cryptos stands by the title.
 document.querySelector('.brand').prepend(bust('cryptos', ''));
 // Tyndall, beside the story of the game's end and return. She watches the pointer.
 document.querySelector('.intro').append(bust('tyndall', '', { watches: true }));
