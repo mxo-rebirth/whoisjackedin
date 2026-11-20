@@ -283,7 +283,7 @@ export function renderPlayers() {
 
   // The scale fits what is on show, so zooming in on a quiet period still fills the chart.
   const sumOf = (step) => shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0);
-  // The "together" line needs room too, which squeezes the servers' lines. That is why it starts switched off.
+  // The "together" line needs room too, which squeezes the servers' lines.
   const topOf = (step) => (stacked || together ? sumOf(step) : Math.max(0, ...shown.map((i) => step.mean[i] ?? 0)));
   const peak = Math.max(4, ...steps.filter((step) => step.end > view.from && step.start < view.to).map(topOf));
   const tick = niceStep(peak / 4, true);
@@ -479,7 +479,8 @@ export function renderPlayers() {
 }
 
 // Kept in a cookie for a year, like the theme and the color.
-export let together = /(?:^|; )together=on(?:;|$)/.test(document.cookie);
+// On unless the visitor switched it off: the whole community first.
+export let together = !/(?:^|; )together=off(?:;|$)/.test(document.cookie);
 $('together-switch').addEventListener('click', () => {
   together = !together;
   document.cookie = `together=${together ? 'on' : 'off'}; max-age=31536000; path=/; SameSite=Lax`;
