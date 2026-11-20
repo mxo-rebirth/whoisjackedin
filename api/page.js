@@ -4,9 +4,9 @@
 // is never cached, so it cannot reach anyone else.
 import { readFile } from 'node:fs/promises';
 import { castOf, withCast } from '../lib/cast.js';
-import { buildStats } from '../lib/core.js';
+import { buildStats } from '../lib/stats.js';
 import { renderPage } from '../lib/page.js';
-import { online } from '../lib/site.js';
+import { online, siteUrl } from '../lib/site.js';
 
 let template = null;
 
@@ -14,12 +14,13 @@ let template = null;
  * The built page travels with this function. If it somehow does not, it is fetched from the site.
  * Read once online, but every time locally, so a new build shows at once.
  */
-async function loadTemplate(req) {
+async function loadTemplate() {
   if (template && online()) return template;
   try {
     template = await readFile(new URL('../public/page.html', import.meta.url), 'utf8');
   } catch {
-    const res = await fetch(`https://${req.headers.host}/page.html`);
+    // From the site's own address, never from the one the request claims.
+    const res = await fetch(`${siteUrl()}/page.html`);
     if (!res.ok) throw new Error(`the page file answered ${res.status}`);
     template = await res.text();
   }
@@ -32,7 +33,15 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
-  const page = await loadTemplate(req);
+  let page;
+  try {
+    page = await loadTemplate();
+  } catch (err) {
+    console.error(err);
+    res.setHeader('cache-control', 'no-store');
+    res.status(503).send('The page is not available right now.');
+    return;
+  }
   let body = page;
   try {
     body = renderPage(page, await buildStats('24h', 0), { links: req.query?.links !== undefined, analytics: online() });

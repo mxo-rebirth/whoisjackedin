@@ -1,7 +1,7 @@
 // The page's script: loads the numbers, draws every part of the page, and keeps it up to date.
-import { linked, range, RANGE_LABEL, readingAt, setRange, setReadingAt, setStats, stats } from './page/state.js';
+import { isRange, linked, range, readingAt, setRange, setReadingAt, setStats, stats } from './page/state.js';
 import { dayTimeFmt, TZ_HOURS } from './page/format.js';
-import { $, stateIcon } from './page/dom.js';
+import { $, cookie, setCookie, stateIcon } from './page/dom.js';
 import { charts, paint } from './page/look.js';
 import { renderNow, renderRanking, renderSummary } from './page/cards.js';
 import { renderPlayers } from './page/players.js';
@@ -77,7 +77,7 @@ function renderEverything() {
 function showSaved() {
   try {
     const saved = JSON.parse(localStorage.getItem('last-stats'));
-    if (!saved?.servers || !(saved.history?.range in RANGE_LABEL)) return;
+    if (!saved?.servers || !isRange(saved.history?.range)) return;
     setStats(saved);
     setReadingAt(readingTimeOf(saved));
     setRange(saved.history.range);
@@ -88,7 +88,12 @@ function showSaved() {
   }
 }
 
+// Each load gets a number. An answer that arrives after a newer load was started is dropped, so a slow answer
+// for an older range can never replace the chart of the range now chosen.
+let loads = 0;
+
 async function load({ dim = false } = {}) {
+  const ticket = ++loads;
   let cachedAt;
   const scoped = document.querySelectorAll('.scoped');
   if (dim) scoped.forEach((node) => node.classList.add('stale'));
@@ -96,6 +101,7 @@ async function load({ dim = false } = {}) {
     const res = await fetch(`/api/stats?range=${range}&tz=${TZ_HOURS}`);
     if (!res.ok) throw new Error(`status ${res.status}`);
     const fresh = await res.json();
+    if (ticket !== loads) return;
     const age = Number(res.headers.get('age')) || 0;
     setStats(fresh);
     setReadingAt(readingTimeOf(fresh, age));
@@ -107,6 +113,7 @@ async function load({ dim = false } = {}) {
       localStorage.setItem('last-stats', JSON.stringify(stats));
     } catch {}
   } catch (err) {
+    if (ticket !== loads) return;
     console.error(err);
     showBanner(
       stats
@@ -192,19 +199,19 @@ if ('serviceWorker' in navigator && !/^(localhost|127\.0\.0\.1)$/.test(location.
     const next = root.dataset.accent === 'blue' ? 'green' : 'blue';
     if (next === 'blue') root.dataset.accent = 'blue';
     else delete root.dataset.accent;
-    document.cookie = `accent=${next}; max-age=31536000; path=/; SameSite=Lax`;
+    setCookie('accent', next);
     tint.textContent = name();
     repaint();
   });
   button.textContent = root.dataset.theme === 'light' ? 'Dark mode' : 'Light mode';
   button.addEventListener('click', () => {
     const next = root.dataset.theme === 'light' ? 'dark' : 'light';
-    document.cookie = `theme=${next}; max-age=31536000; path=/; SameSite=Lax`;
+    setCookie('theme', next);
     show(next);
   });
   // Follow the device while no choice has been saved.
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', (event) => {
-    if (!/(?:^|; )theme=/.test(document.cookie)) show(event.matches ? 'light' : 'dark');
+    if (!cookie('theme')) show(event.matches ? 'light' : 'dark');
   });
 }
 

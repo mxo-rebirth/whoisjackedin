@@ -47,7 +47,7 @@ MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 
 ## Deployment
 
-1. Deploy the folder with a Redis REST database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and a random `CRON_SECRET`
+1. Deploy the folder with a Redis REST database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and random `CRON_SECRET` and `VISIT_SECRET` values
 2. Call `https://<your-site>/api/collect` every minute with `Authorization: Bearer <CRON_SECRET>`
 
 The page's own address comes from the host's production domain, or from `MXO_SITE` if set.

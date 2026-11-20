@@ -132,7 +132,9 @@ const ROUNDS = { dance: 3 }; // how many times a move that loops is played when 
 
 /** Reads the file of moves: a JSON header, then 16-bit numbers. Each track is its key times, then its values. */
 async function loadMoves(file) {
-  const data = await (await fetch(fileUrl(file))).arrayBuffer();
+  const answer = await fetch(fileUrl(file));
+  if (!answer.ok) throw new Error(`the moves file answered ${answer.status}`);
+  const data = await answer.arrayBuffer();
   const headerLength = new Uint32Array(data, 0, 1)[0];
   const header = JSON.parse(new TextDecoder().decode(new Uint8Array(data, 4, headerLength)));
   const numbers = new Int16Array(data, 4 + headerLength);

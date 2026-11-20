@@ -3,15 +3,11 @@ import { RANGE_LABEL, stats } from './state.js';
 import { ago, dayTimeFmt, downtime, percent, players, timeFmt, whole } from './format.js';
 import { $, el, html, link } from './dom.js';
 import { cell, colorOf, key, rowHead, uptimeCell } from './look.js';
+// What a server's latest answer means is decided in one place, shared with the server.
+import { statusOf } from '../../lib/status.js';
 
-/** What the status light and its label say for one server's latest answer. */
+export { statusOf };
 
-export function statusOf(now) {
-  if (!now || now.players === undefined) return { led: 'unknown', text: 'NO SIGNAL', counted: false };
-  if (now.unsure) return { led: 'unsure', text: 'TRACING', counted: now.online };
-  if (!now.ok) return { led: 'unknown', text: 'NO SIGNAL', counted: false };
-  return now.online ? { led: 'good', text: 'ONLINE', counted: true } : { led: 'critical', text: 'OFFLINE', counted: false };
-}
 
 /** A small line of one server's player count over the selected range. */
 

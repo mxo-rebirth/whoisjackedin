@@ -1,7 +1,7 @@
 // The main chart: operatives jacked in over the chosen range, with its legend, zoom and table view.
 import { hiddenServers, RANGE_LABEL, stats } from './state.js';
 import { amount, DAY, dayLabel, dayTimeFmt, MINUTE, monthDayFmt, niceStep, timeFmt } from './format.js';
-import { $, headCell, html } from './dom.js';
+import { $, cookie, headCell, html, setCookie } from './dom.js';
 import { arrowKeys, AXIS_LINE, AXIS_TEXT, chartIn, charts, colorOf, fade, INK, key, mix, MONO, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, tipBox } from './look.js';
 import { statusOf } from './cards.js';
 
@@ -252,25 +252,8 @@ export function wirePlayers(chart, node) {
   );
 }
 
-export function renderPlayers() {
-  const node = $('players-chart');
-  const isNew = !charts.has(node);
-  const chart = chartIn(node);
-  if (isNew) wirePlayers(chart, node);
-  clearTimeout(settle);
-
-  const servers = stats.servers;
-  const { range: name, bucketMs } = stats.history;
-  const { from, to } = chartSpan();
-  // A newly loaded range starts zoomed all the way out.
-  const fresh = shownRange !== name;
-  shownRange = name;
-  if (fresh) zoom = { start: 0, end: 100 };
-  const { joined, width } = joinSteps();
-  steps = joined;
-  stepMs = width;
-  const view = shownWindow();
-  const shown = servers.map((_, i) => i).filter((i) => !hiddenServers.has(servers[i].id));
+/** The legend, the readout, the table's head and the switches above the chart, in step with what is drawn. */
+function syncControls() {
   renderLegend();
   renderReadout();
   renderPlayersHead();
@@ -280,7 +263,11 @@ export function renderPlayers() {
   // The stacked view already shows the total as its top edge.
   $('together-switch-box').hidden = stacked;
   $('together-switch').setAttribute('aria-pressed', String(together));
+}
 
+/** The y scale for what is on show: its top, the tick values, how much one pixel is worth, and a small nudge
+ * that keeps lines with the same value a couple of pixels apart. */
+function scaleOf(chart, shown, view) {
   // The scale fits what is on show, so zooming in on a quiet period still fills the chart.
   const sumOf = (step) => shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0);
   // The "together" line needs room too, which squeezes the servers' lines.
@@ -294,7 +281,11 @@ export function renderPlayers() {
   const pixel = yMax / (plotHeight - 10);
   // Lines that sit on the same value are nudged a couple of pixels apart so each stays visible.
   const nudge = (k) => (stacked ? 0 : (k - (shown.length - 1) / 2) * 2 * pixel);
+  return { yMax, ticks, pixel, nudge };
+}
 
+/** Each shown server's line, one point per joined step, and the total of all of them. */
+function tracksOf(shown, from, to, nudge) {
   // One point per joined step, in the middle of it.
   const tracks = shown.map(() => []);
   const totals = [[from, null]];
@@ -316,7 +307,11 @@ export function renderPlayers() {
     totals.push([x, known ? sum : null]);
   }
   totals.push([to, null]);
+  return { tracks, totals };
+}
 
+/** Outages: bands in the stacked view, dotted stretches in the lines view. Reshapes `tracks` around them. */
+function outageLines(servers, shown, tracks, from, to, nudge) {
   // In the lines view an outage is drawn dotted from its exact start to its exact end: the solid line stops at
   // the edges and a dotted one carries on, along zero when the server said it was down, or as a straight bridge
   // when its feed gave no answer. The stacked view has no dotted lines, so it marks outages with bands.
@@ -347,7 +342,11 @@ export function renderPlayers() {
     tracks[k] = solid.sort((a, b) => a[0] - b[0]);
     return points;
   });
+  return { banded, dotted };
+}
 
+/** The dots that mark where each line is now, when the view reaches the present. */
+function liveDots(servers, shown, tracks) {
   // A dot marks where each line is now.
   const live = [];
   if (!stacked && zoom.end > 99.9) {
@@ -356,8 +355,11 @@ export function renderPlayers() {
       if (last && last[1] !== null) live.push({ value: last, itemStyle: { color: colorOf(servers[i].id) } });
     });
   }
+  return live;
+}
 
-  const series = [
+function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, to }) {
+  return [
     // Never drawn. It gives the strip under the chart its shape.
     { id: 'total', type: 'line', data: totals, symbol: 'none', silent: true, animation: false, lineStyle: { opacity: 0 }, tooltip: { show: false } },
     // All servers together: faint, behind the servers' own lines, and only when switched on.
@@ -432,6 +434,47 @@ export function renderPlayers() {
       tooltip: { show: false },
     },
   ];
+}
+
+/** The table under "Show as table": one row per joined step, newest first. */
+function renderPlayersTable(servers) {
+  $('players-empty').hidden = steps.length >= 2;
+  const most = Math.max(1, ...steps.flatMap((step) => step.mean.map((value) => value ?? 0)));
+  $('players-head').replaceChildren(headCell('Time'), ...servers.map(serverHead));
+  $('players-rows').replaceChildren(
+    ...steps
+      .slice()
+      .reverse()
+      .map((step) => serverRow(`${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`, step.mean, most)),
+  );
+}
+
+export function renderPlayers() {
+  const node = $('players-chart');
+  const isNew = !charts.has(node);
+  const chart = chartIn(node);
+  if (isNew) wirePlayers(chart, node);
+  clearTimeout(settle);
+
+  const servers = stats.servers;
+  const { range: name, bucketMs } = stats.history;
+  const { from, to } = chartSpan();
+  // A newly loaded range starts zoomed all the way out.
+  const fresh = shownRange !== name;
+  shownRange = name;
+  if (fresh) zoom = { start: 0, end: 100 };
+  const { joined, width } = joinSteps();
+  steps = joined;
+  stepMs = width;
+  const view = shownWindow();
+  const shown = servers.map((_, i) => i).filter((i) => !hiddenServers.has(servers[i].id));
+  syncControls();
+
+  const { yMax, ticks, pixel, nudge } = scaleOf(chart, shown, view);
+  const { tracks, totals } = tracksOf(shown, from, to, nudge);
+  const { banded, dotted } = outageLines(servers, shown, tracks, from, to, nudge);
+  const live = liveDots(servers, shown, tracks);
+  const series = seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, to });
 
   const zoomBase = { filterMode: 'none', minValueSpan: 2 * bucketMs, ...(fresh ? { start: 0, end: 100 } : {}) };
   chart.setOption(
@@ -467,23 +510,15 @@ export function renderPlayers() {
     { replaceMerge: ['series'] },
   );
 
-  $('players-empty').hidden = steps.length >= 2;
-  const most = Math.max(1, ...steps.flatMap((step) => step.mean.map((value) => value ?? 0)));
-  $('players-head').replaceChildren(headCell('Time'), ...servers.map(serverHead));
-  $('players-rows').replaceChildren(
-    ...steps
-      .slice()
-      .reverse()
-      .map((step) => serverRow(`${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`, step.mean, most)),
-  );
+  renderPlayersTable(servers);
 }
 
 // Kept in a cookie for a year, like the theme and the color.
 // On unless the visitor switched it off: the whole community first.
-export let together = !/(?:^|; )together=off(?:;|$)/.test(document.cookie);
+export let together = cookie('together') !== 'off';
 $('together-switch').addEventListener('click', () => {
   together = !together;
-  document.cookie = `together=${together ? 'on' : 'off'}; max-age=31536000; path=/; SameSite=Lax`;
+  setCookie('together', together ? 'on' : 'off');
   renderPlayers();
 });
 

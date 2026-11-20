@@ -1,14 +1,6 @@
 // Visit numbers for the site's owner. It needs "Authorization: Bearer <CRON_SECRET>", like api/collect.
-import { timingSafeEqual } from 'node:crypto';
+import { failed, isOwner } from '../lib/auth.js';
 import { visitSummary } from '../lib/visits.js';
-
-function allowed(req) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const given = Buffer.from(String(req.headers.authorization ?? ''));
-  const wanted = Buffer.from(`Bearer ${secret}`);
-  return given.length === wanted.length && timingSafeEqual(given, wanted);
-}
 
 export default async function handler(req, res) {
   res.setHeader('cache-control', 'no-store');
@@ -17,7 +9,7 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
-  if (!allowed(req)) {
+  if (!isOwner(req)) {
     res.status(401).json({ ok: false, error: 'not allowed' });
     return;
   }
@@ -26,7 +18,6 @@ export default async function handler(req, res) {
   try {
     res.status(200).json({ ok: true, ...(await visitSummary(days)) });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, error: String(err.message).slice(0, 200) });
+    failed(res, err);
   }
 }

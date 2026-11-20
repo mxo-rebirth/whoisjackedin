@@ -19,7 +19,11 @@ export const token = (name) => rootStyle.getPropertyValue(name).trim();
 // Color follows the server, whatever order the list comes in.
 export const SERIES = {};
 
-export const colorOf = (id) => SERIES[id] ?? token('--muted');
+/** A server's color: its tone, read from the theme once and kept until the theme changes. */
+export const colorOf = (id) => {
+  const tone = stats?.servers.find((server) => server.id === id)?.tone ?? '--muted';
+  return (SERIES[tone] ??= token(tone));
+};
 
 export function key(id) {
   const node = html('span', 'key');
@@ -72,7 +76,7 @@ export const BAND_POINTER = { type: 'shadow', shadowStyle: {} };
 /** Reads the current theme's colors into the objects the charts use. */
 
 export function paint() {
-  Object.assign(SERIES, { rejacked: token('--s1'), revived: token('--s2'), mxoemu: token('--s3'), openmxo: token('--s4') });
+  for (const tone of Object.keys(SERIES)) delete SERIES[tone];
   Object.assign(INK, {
     text: token('--ink'),
     soft: token('--ink-2'),

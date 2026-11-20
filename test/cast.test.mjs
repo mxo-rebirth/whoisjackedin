@@ -61,3 +61,14 @@ test('the private page links an app manifest that starts at its code', async () 
   assert.equal(manifest().start_url, '/');
   assert.equal(manifest(LOCAL_KEY).id, manifest().id);
 });
+
+test('the public local code only works while the local server listens on this computer alone', () => {
+  for (const host of [undefined, '127.0.0.1', 'localhost', '::1']) {
+    if (host === undefined) delete process.env.HOST;
+    else process.env.HOST = host;
+    assert.equal(castKey(), LOCAL_KEY, String(host));
+  }
+  process.env.HOST = '0.0.0.0';
+  assert.equal(castKey(), null, 'opened to the network, there is no private version without CAST_SECRET');
+  delete process.env.HOST;
+});

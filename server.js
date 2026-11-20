@@ -12,8 +12,9 @@ const PUBLIC = path.join(ROOT, 'public');
 // Without Redis settings in the environment, samples go to files in this folder.
 process.env.MXO_DATA_DIR ??= path.join(ROOT, 'data', 'kv');
 
-const { SAMPLE_MS, collect } = await import('./lib/core.js');
+const { SAMPLE_MS, collect } = await import('./lib/sampler.js');
 const { rewrite } = await import('./lib/rewrite.js');
+const { cookiesOf } = await import('./lib/cookies.js');
 const config = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,7 +26,6 @@ const TYPES = {
   '.jpg': 'image/jpeg',
 };
 
-const cookiesOf = (header) => Object.fromEntries(String(header ?? '').split(/;\s*/).filter(Boolean).map((pair) => [pair.split('=')[0], pair.slice(pair.indexOf('=') + 1)]));
 
 /** Adds what the host's functions expect: req.query, req.body, res.status(), res.json(), res.send(). */
 function hostStyle(req, res, url, body) {

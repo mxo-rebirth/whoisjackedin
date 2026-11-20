@@ -2,17 +2,20 @@
 // Only the loading code changes these, through the setters.
 export const RANGE_LABEL = { '1h': 'last hour', '24h': 'last 24 hours', '7d': 'last 7 days', '30d': 'last 30 days', all: 'whole record' };
 
+/** True for a range the page knows. Inherited names such as "constructor" do not count. */
+export const isRange = (value) => typeof value === 'string' && Object.hasOwn(RANGE_LABEL, value);
+
 export let range = '24h';
 
 try {
   const saved = localStorage.getItem('range');
-  if (saved in RANGE_LABEL) range = saved;
+  if (isRange(saved)) range = saved;
 } catch {}
 
 // A link like /?range=7d opens that range directly.
 export const linked = new URLSearchParams(location.search).get('range');
 
-if (linked in RANGE_LABEL) range = linked;
+if (isRange(linked)) range = linked;
 
 export let stats = null;
 

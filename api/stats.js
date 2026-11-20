@@ -1,4 +1,5 @@
-import { RANGES, buildStats } from '../lib/core.js';
+import { failed } from '../lib/auth.js';
+import { RANGES, buildStats } from '../lib/stats.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -29,8 +30,6 @@ export default async function handler(req, res) {
     res.setHeader('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=10');
     res.status(200).json(stats);
   } catch (err) {
-    console.error(err);
-    res.setHeader('cache-control', 'no-store');
-    res.status(500).json({ error: 'stats are not available right now' });
+    failed(res, err, 'stats are not available right now');
   }
 }

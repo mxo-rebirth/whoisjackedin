@@ -4,9 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { SERVERS } from './lib/sources.js';
+import { escapeHtml } from './lib/html.js';
 import { iconPng } from './lib/icons.js';
 import { manifest } from './lib/manifest.js';
-import { online, siteUrl } from './lib/site.js';
+import { siteUrl } from './lib/site.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(root, 'public');
@@ -78,13 +79,11 @@ const css = (await transform(source.slice(open + 7, close), { loader: 'css', min
 
 // The server descriptions are written into the page, so search engines and readers without scripts get them.
 // The script redraws that section with the live status once it loads.
-const text = (value) => String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const tones = { rejacked: '--s1', revived: '--s2', mxoemu: '--s3', openmxo: '--s4' };
 const about = SERVERS.filter((server) => server.about)
   .map((server) => {
-    const facts = server.about.facts.map((fact) => `<dt>${text(fact.label)}</dt><dd>${text(fact.value)}</dd>`).join('');
-    const links = server.about.links.map((item) => `<a href="${text(item.url)}" target="_blank" rel="noopener noreferrer">${text(item.label)}</a>`).join('');
-    return `<div class="card" style="--c: var(${tones[server.id] ?? '--muted'})"><div class="server-head"><div class="server-titles"><h3>${text(server.name)}</h3></div></div><div class="prose">${text(server.about.summary)}</div><dl>${facts}</dl><div class="links">${links}</div></div>`;
+    const facts = server.about.facts.map((fact) => `<dt>${escapeHtml(fact.label)}</dt><dd>${escapeHtml(fact.value)}</dd>`).join('');
+    const links = server.about.links.map((item) => `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)}</a>`).join('');
+    return `<div class="card" style="--c: var(${server.tone})"><div class="server-head"><div class="server-titles"><h3>${escapeHtml(server.name)}</h3></div></div><div class="prose">${escapeHtml(server.about.summary)}</div><dl>${facts}</dl><div class="links">${links}</div></div>`;
   })
   .join('');
 const site = siteUrl();
@@ -95,9 +94,6 @@ const page = fill(squeeze(source.slice(0, open))) + `<style>${css}</style>` + fi
 // The page is written as page.html, not index.html: the address "/" is answered by api/page.js, which puts
 // the current numbers into it first.
 await writeFile(path.join(out, 'page.html'), page);
-// On your own computer a copy is also left as index.html, so a local server started before this change keeps working.
-// Online it must not exist, or it would be served for "/" instead of the filled-in page.
-if (!online()) await writeFile(path.join(out, 'index.html'), page);
 await writeFile(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /page.html\nDisallow: /api/\nSitemap: ${site}/sitemap.xml\n`);
 await writeFile(
   path.join(out, 'sitemap.xml'),
