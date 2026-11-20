@@ -1,4 +1,4 @@
-// The local server runs the same functions as Vercel, with vercel.json's rewrites and headers. This starts it
+// The local server runs the same functions as the live site, with the same rewrites and headers. This starts it
 // on made-up data and asks it what a browser would. It needs a build (npm run build) and is skipped without one.
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
@@ -32,7 +32,7 @@ after(async () => {
 const get = (address, headers = {}) => fetch(base + address, { headers, redirect: 'manual' });
 const only = built ? test : test.skip;
 
-only('the page comes with its numbers and the security headers from vercel.json', async () => {
+only('the page comes with its numbers and the security headers from the settings', async () => {
   const res = await get('/');
   assert.equal(res.status, 200);
   assert.match(res.headers.get('content-security-policy'), /default-src 'none'/);
@@ -50,7 +50,7 @@ only('the private link, its cookie, and switching it off', async () => {
   assert.match(linked.headers.get('set-cookie'), /^rsid=local;.*HttpOnly/);
   assert.doesNotMatch(linked.headers.get('set-cookie'), /Secure/, 'plain http on your own computer');
   assert.equal(linked.headers.get('cache-control'), 'private, no-store');
-  // The cookie alone reaches the page through the rewrite in vercel.json.
+  // The cookie alone reaches the page through the rewrite.
   assert.match(await (await get('/', { cookie: 'rsid=local' })).text(), /api\/model\?f=cast\.js/);
   const off = await get('/?rsi=off', { cookie: 'rsid=local' });
   assert.ok(!(await off.text()).includes('api/model'));
@@ -70,8 +70,8 @@ only('the numbers, and the parameters they refuse', async () => {
 
 only('the private files need the key', async () => {
   // A copy without the built characters answers "not found" here too.
-  if (existsSync(path.join(ROOT, 'art', 'models', 'tyndall.bin'))) assert.equal((await get('/api/model?f=tyndall.bin&k=local')).status, 200);
-  assert.equal((await get('/api/model?f=tyndall.bin')).status, 404);
+  if (existsSync(path.join(ROOT, 'art', 'models', 'flood.bin'))) assert.equal((await get('/api/model?f=flood.bin&k=local')).status, 200);
+  assert.equal((await get('/api/model?f=flood.bin')).status, 404);
   assert.equal((await get('/api/model?f=../.env.local&k=local')).status, 404);
 });
 

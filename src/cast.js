@@ -28,7 +28,7 @@ matchTone();
 new MutationObserver(matchTone).observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent'] });
 document.head.append(html('style', '', CAST_CSS));
 
-// Characters from the game's own story, none from the films. Cryptos stands by the title.
+// Characters from the game's own story. Cryptos stands by the title.
 document.querySelector('.brand').prepend(bust('cryptos', ''));
 // Tyndall, beside the story of the game's end and return. She watches the pointer.
 document.querySelector('.intro').append(bust('tyndall', '', { watches: true }));

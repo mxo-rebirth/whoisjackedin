@@ -1,4 +1,4 @@
-// The falling code behind the header: mirrored katakana and digits, as in the films, drawn as real text
+// The falling code behind the header: mirrored katakana and digits, as in the game, drawn as real text
 // so it stays sharp on any screen. A device with no Japanese font gets the digits and signs only.
 import { $ } from './dom.js';
 import { fade, INK, stillPage, token } from './look.js';

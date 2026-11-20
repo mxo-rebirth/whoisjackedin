@@ -1,6 +1,6 @@
 // Serves the page with the current numbers already in it, cached for a minute. A request with the key
 // (see lib/cast.js) also gets the game art's script. Requests with the key's cookie reach this function by
-// their own rewrite in vercel.json, so the cached public page never answers them, and the private answer
+// their own rewrite, so the cached public page never answers them, and the private answer
 // is never cached, so it cannot reach anyone else.
 import { readFile } from 'node:fs/promises';
 import { castOf, withCast } from '../lib/cast.js';
@@ -11,7 +11,7 @@ let template = null;
 
 /**
  * The built page travels with this function; if it somehow does not, it is fetched from the site.
- * Read once on Vercel, but every time locally, so a new build shows at once.
+ * Read once online, but every time locally, so a new build shows at once.
  */
 async function loadTemplate(req) {
   if (template && process.env.VERCEL) return template;

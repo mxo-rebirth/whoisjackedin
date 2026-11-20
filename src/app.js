@@ -9,6 +9,7 @@ import { renderDaily, renderGaps, renderHours, renderOutages, renderPicker, rend
 import { renderAbout, renderFooter } from './page/about.js';
 import { startRain } from './page/rain.js';
 import './page/leave.js';
+import './page/install.js';
 
 // The label counts from the newest reading, not from the fetch: a fetched answer can already be a minute old.
 function renderUpdated() {
@@ -26,7 +27,7 @@ function readingTimeOf(data, age = 0) {
   return newest ? Date.now() - age * 1000 - (data.now - newest) : null;
 }
 
-// Vercel's cache keeps each answer for a minute and may hand it out 10 s longer (see api/stats.js), so asking
+// The host's cache keeps each answer for a minute and may hand it out 10 s longer (see api/stats.js), so asking
 // sooner only gets the same answer back. The next fetch is timed for just after that.
 const CACHED_MS = 70_000;
 let nextLoad = null;

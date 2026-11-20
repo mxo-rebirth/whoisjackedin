@@ -24,9 +24,9 @@ for (const [name, size, maskable] of [['app-192', 192, false], ['app-512', 512, 
 await writeFile(
   path.join(out, 'manifest.webmanifest'),
   JSON.stringify({
-    name: 'Who is jacked in: MxO server stats',
+    name: 'Who is jacked in: MxO Server Stats',
     short_name: 'Jacked in',
-    description: 'Live player counts for the Matrix Online community servers.',
+    description: 'Live player counts for The Matrix Online community servers.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
@@ -68,7 +68,7 @@ const bundle = await build({
   format: 'iife',
   target: 'es2022',
   legalComments: 'none',
-  banner: { js: '/*! MxO server stats. Charts by Apache ECharts and ZRender, licenses in /assets/licenses.txt */' },
+  banner: { js: '/*! MxO Server Stats. Charts by Apache ECharts and ZRender, licenses in /assets/licenses.txt */' },
   metafile: true,
 });
 const script = path.basename(Object.keys(bundle.metafile.outputs).find((name) => name.endsWith('.js')));
@@ -113,7 +113,7 @@ const page = fill(squeeze(source.slice(0, open))) + `<style>${css}</style>` + fi
 // the current numbers into it first.
 await writeFile(path.join(out, 'page.html'), page);
 // On your own computer a copy is also left as index.html, so a local server started before this change keeps working.
-// On Vercel it must not exist, or it would be served for "/" instead of the filled-in page.
+// Online it must not exist, or it would be served for "/" instead of the filled-in page.
 if (!process.env.VERCEL) await writeFile(path.join(out, 'index.html'), page);
 await writeFile(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /page.html\nDisallow: /api/\nSitemap: ${site}/sitemap.xml\n`);
 await writeFile(

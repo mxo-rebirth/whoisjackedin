@@ -1,4 +1,4 @@
-// Runs the site locally the way Vercel does: the same api/ functions, vercel.json's rewrites and headers,
+// Runs the site locally the way the host does: the same api/ functions, rewrites and headers,
 // and public/. Storage is a folder of files; a timer takes the samples the outside scheduler takes live.
 import http from 'node:http';
 import path from 'node:path';
@@ -27,7 +27,7 @@ const TYPES = {
 const cookiesOf = (header) => Object.fromEntries(String(header ?? '').split(/;\s*/).filter(Boolean).map((pair) => [pair.split('=')[0], pair.slice(pair.indexOf('=') + 1)]));
 
 /**
- * The address after vercel.json's rewrites. As on Vercel, the query of the original address is kept, and a
+ * The address after the rewrites. As online, the query of the original address is kept, and a
  * cookie that a rule looks for is handed on as a query value of the same name.
  */
 function rewrite(url, cookies) {
@@ -43,8 +43,8 @@ function rewrite(url, cookies) {
   return url;
 }
 
-/** Adds what Vercel's functions expect: req.query, req.body, res.status(), res.json(), res.send(). */
-function vercelStyle(req, res, url, body) {
+/** Adds what the host's functions expect: req.query, req.body, res.status(), res.json(), res.send(). */
+function hostStyle(req, res, url, body) {
   req.query = Object.fromEntries(url.searchParams);
   req.body = body;
   res.status = (code) => {
@@ -61,7 +61,7 @@ function vercelStyle(req, res, url, body) {
   };
 }
 
-/** A POST body sent as JSON, as Vercel reads it. Anything else gives undefined. */
+/** A POST body sent as JSON, as the host reads it. Anything else gives undefined. */
 async function readBody(req) {
   if (req.method !== 'POST' || !String(req.headers['content-type']).startsWith('application/json')) return undefined;
   let text = '';
@@ -99,7 +99,7 @@ const server = http.createServer(async (req, res) => {
       if (!handler) return void res.writeHead(404).end();
       // The functions ask for a Secure cookie only when the page came over https.
       req.headers['x-forwarded-proto'] = 'http';
-      vercelStyle(req, res, url, await readBody(req));
+      hostStyle(req, res, url, await readBody(req));
       return void (await handler(req, res));
     }
     // Everything else is a built file. A path that tries to leave public/ is not found.

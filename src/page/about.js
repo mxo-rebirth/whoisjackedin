@@ -99,11 +99,7 @@ export function renderFooter() {
   const rule = html('p', '', 'a server is called down only after 15 minutes without a live answer');
   const legal = html('p', '', 'fan page, not run by the server teams or the owners of The Matrix Online');
   const care = html('p', '', 'not connected to any server project, and no promise that their clients or downloads are safe');
-  const license = html('p', '', 'code under the MIT license · ');
-  const licenses = html('a', '', 'licenses');
-  licenses.href = '/assets/licenses.txt';
-  license.append(licenses);
-  $('footer').replaceChildren(sources, rule, legal, care, license);
+  $('footer').replaceChildren(sources, rule, legal, care);
   // Visit totals stay private (npm run visitors); only the start of the record is shown.
   const facts = [];
   if (stats.since) facts.push(`recording since ${fullDateFmt.format(stats.since)}`);

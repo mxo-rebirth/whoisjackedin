@@ -276,7 +276,7 @@ export function renderWeek() {
   const filled = averages.filter((v) => v !== null).length;
   const best = averages.reduce((bestSlot, v, slot) => (v !== null && v > (averages[bestSlot] ?? 0) ? slot : bestSlot), -1);
   node.setAttribute('aria-label', `Average operatives on ${server.name} by weekday and hour.` + (best < 0 ? '' : ` Busiest: ${dayName(Math.floor(best / 24))} around ${hourLabel(best % 24)}.`));
-  $('week-sub').textContent = `${server.name}, average operatives by weekday and hour, in your time zone`;
+  $('week-sub').textContent = `${server.name}, average operatives by weekday and hour`;
   $('week-note').textContent = filled < 168 ? `${filled} of 168 hours have data so far. It fills in over a week.` : '';
   $('week-key').style.setProperty('--c', color);
 }

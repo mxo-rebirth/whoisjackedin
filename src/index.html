@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <script src="/assets/theme.js"></script>
-<title>MxO Server Stats: Matrix Online player counts, live</title>
-<meta name="description" content="Unofficial live player counts for the Matrix Online private servers run by the community: Rejacked, MxO Revived, MxOEmu and openMXO.">
+<title>MxO Server Stats: The Matrix Online player counts, live</title>
+<meta name="description" content="Unofficial live player counts for The Matrix Online private servers run by the community: Rejacked, MxO Revived, MxOEmu and openMXO.">
 <link rel="canonical" href="__SITE__/">
 <meta name="theme-color" content="#030604">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/assets/icons/app-180.png">
 <meta name="apple-mobile-web-app-title" content="Jacked in">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="MxO server stats">
-<meta property="og:title" content="MxO Server Stats: Matrix Online player counts, live">
-<meta property="og:description" content="Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO.">
+<meta property="og:site_name" content="MxO Server Stats">
+<meta property="og:title" content="MxO Server Stats: The Matrix Online player counts, live">
+<meta property="og:description" content="Live player counts, peaks, uptime and history for The Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO.">
 <meta property="og:url" content="__SITE__/">
 <meta property="og:image" content="__SITE__/assets/icons/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"MxO server stats","url":"__SITE__/","inLanguage":"en","description":"Live player counts, peaks, uptime and history for the Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"MxO Server Stats","url":"__SITE__/","inLanguage":"en","description":"Live player counts, peaks, uptime and history for The Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO."}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23030604'/%3E%3Cpath d='M3 12V8M6.5 12V5M10 12V9M13.5 12V4' stroke='%233dff8f' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -381,6 +381,17 @@
   .gaps-note { margin: 4px 0 12px; max-width: 78ch; }
   /* The box that opens before a link leaves for one of the projects: this page vouches for nobody's software. */
   .leave { width: min(520px, calc(100vw - 32px)); padding: 0; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 4px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5); }
+  .install { position: fixed; z-index: 20; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; display: flex; gap: 12px; align-items: center; padding: 12px 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 4px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); animation: install-in 0.35s ease-out; }
+  .install[hidden], .install[data-how="button"] .for-steps, .install[data-how="steps"] .for-button { display: none; }
+  .install-icon { flex: none; width: 40px; height: 40px; border-radius: 9px; }
+  .install-text { flex: 1; min-width: 0; font-size: var(--t-note); line-height: 1.45; color: var(--ink-2); }
+  .install-text strong { display: block; margin-bottom: 2px; font-size: var(--t-body); font-weight: 600; color: var(--ink); }
+  .install-text b { font-weight: 600; color: var(--ink); }
+  .install-share { width: 13px; height: 13px; vertical-align: -2px; }
+  .install-actions { flex: none; display: flex; flex-direction: column; gap: 6px; }
+  .install .install-go { color: var(--accent); border-color: var(--accent); }
+  @keyframes install-in { from { opacity: 0; transform: translateY(16px); } }
+  @media (prefers-reduced-motion: reduce) { .install { animation: none; } }
   .leave::backdrop { background: rgba(0, 0, 0, 0.6); }
   .leave-box { padding: 20px 22px 18px; }
   .leave p { margin: 10px 0 0; font-size: var(--t-body); line-height: 1.6; color: var(--ink-2); }
@@ -466,7 +477,7 @@
     <div class="brand">
       <div class="brand-text">
         <h1>MXO<span class="dim">//</span>SERVER STATS<span class="cursor" aria-hidden="true">_</span></h1>
-        <div class="sub">Who is jacked in on the Matrix Online community servers</div>
+        <div class="sub">Who is jacked in on The Matrix Online community servers</div>
       </div>
       <span id="own-links"></span>
     </div>
@@ -560,7 +571,7 @@
           <div class="empty" id="players-empty" hidden>Collecting data. The chart fills in minute by minute.</div>
           <div class="zoom-box" id="zoom-box" hidden></div>
         </div>
-        <div class="note" id="zoom-hint">The numbers next to the names are right now. Point at the chart for any other moment. Drag across it to zoom in for more detail, double-click to zoom back out. Click a name to hide or show a server.</div>
+        <div class="note" id="zoom-hint">Point at the chart to read any moment. Drag across it to zoom in, double-click to zoom back out. Click a name to hide or show a server.</div>
         <div class="table-wrap" id="players-table" hidden>
           <table>
             <thead><tr id="players-head"></tr></thead>
@@ -577,12 +588,12 @@
       </section>
     </div>
 
-    <h2><span class="title">Day by day</span> <span class="note">most operatives seen at once on each day, in your time zone</span></h2>
+    <h2><span class="title">Day by day</span> <span class="note">most operatives seen at once on each day</span></h2>
     <section class="card">
       <div class="echart" id="daily-chart" tabindex="0" role="img" aria-label="Most operatives per day for each server. Use the left and right arrow keys to read values."></div>
     </section>
 
-    <h2><span class="title">Uptime</span> <span class="note">one square per day, last 90 days, in your time zone</span></h2>
+    <h2><span class="title">Uptime</span> <span class="note">one square per day, last 90 days</span></h2>
     <section class="card">
       <div id="uptime"></div>
       <div class="strip-foot note">
@@ -597,7 +608,7 @@
       </div>
     </section>
 
-    <h2><span class="title">Busiest hours</span> <span class="note">average operatives at each hour, in your time zone</span></h2>
+    <h2><span class="title">Busiest hours</span> <span class="note">average operatives at each hour</span></h2>
     <section class="card">
       <div class="chart-head">
         <div class="note" id="hours-note">&nbsp;</div>
@@ -676,6 +687,19 @@
     </div>
   </footer>
 </main>
+
+<aside class="install" id="install" aria-label="Keep the site on your home screen" hidden>
+  <img class="install-icon" src="/assets/icons/app-192.png" alt="" width="40" height="40">
+  <div class="install-text">
+    <strong>Put it on your home screen</strong>
+    <span class="for-button">It opens like an app, full screen, even offline.</span>
+    <span class="for-steps">Tap Share <svg class="install-share" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-label="(the square with an arrow)"><path d="M8 10V1.5M5 4.5l3-3 3 3M5.5 7H4v7.5h8V7h-1.5"/></svg>, then <b>Add to Home Screen</b>. It opens like an app, full screen.</span>
+  </div>
+  <div class="install-actions">
+    <button type="button" class="pill install-go" id="install-go"><span class="for-button">Install</span><span class="for-steps">Got it</span></button>
+    <button type="button" class="pill for-button" id="install-later">Not now</button>
+  </div>
+</aside>
 
 <dialog class="leave" id="leave" aria-labelledby="leave-title">
   <div class="leave-box">

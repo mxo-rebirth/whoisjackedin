@@ -23,8 +23,8 @@ test('only CAST_SECRET makes the key, so the private link changes without touchi
 test('only the cast\'s own files can be asked for', () => {
   assert.deepEqual(castFile('cast.js').path, 'private/cast.js');
   assert.deepEqual(castFile('icon/disc_spy.png').path, 'art/icons/disc_spy.png');
-  assert.deepEqual(castFile('tyndall.bin').path, 'art/models/tyndall.bin');
-  for (const bad of ['../.env.local', 'icon/../x.png', 'x.js', '/etc/passwd', 'tyndall.bin/..', '', null]) assert.equal(castFile(bad), null, String(bad));
+  assert.deepEqual(castFile('flood.bin').path, 'art/models/flood.bin');
+  for (const bad of ['../.env.local', 'icon/../x.png', 'x.js', '/etc/passwd', 'flood.bin/..', '', null]) assert.equal(castFile(bad), null, String(bad));
 });
 
 test('a good link sets the cookie; the cookie alone keeps the private version; a wrong link clears it', () => {
