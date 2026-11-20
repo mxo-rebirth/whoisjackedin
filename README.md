@@ -58,7 +58,7 @@ Without the database there is no history.
 
 A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept, and `npm run visitors -- 365` shows them.
 
-The browser keeps the theme, color, "Together" switch, range, last numbers and dismissed boxes, in cookies and local storage.
+The browser keeps the theme, color, "Together" switch, favourite server, range, last numbers and dismissed boxes in its local storage. None of it is sent to the site.
 
 ## License
 

@@ -1,4 +1,5 @@
 import { $ } from './dom.js';
+import { pref, setPref } from './prefs.js';
 
 // On a phone, a small box suggests keeping the site on the home screen. It waits until the visitor has
 // had a look, never shows in the installed app, and "Not now" keeps it away for a month.
@@ -11,18 +12,13 @@ const phone = matchMedia('(pointer: coarse)').matches;
 // iPadOS presents itself as a Mac, so a touch screen gives it away.
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
-let quiet = false;
-try {
-  quiet = Date.now() - Number(localStorage.getItem('install-later') ?? 0) < QUIET_MS;
-} catch {}
+const quiet = Date.now() - Number(pref('install-later') ?? 0) < QUIET_MS;
 
 let offer = null;
 
 function later() {
   box.hidden = true;
-  try {
-    localStorage.setItem('install-later', String(Date.now()));
-  } catch {}
+  setPref('install-later', Date.now());
 }
 
 function show(how) {

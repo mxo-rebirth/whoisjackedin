@@ -1,9 +1,9 @@
 // The server descriptions and the footer.
-import { stats } from './state.js';
+import { favourite, stats } from './state.js';
 import { fullDateFmt, monthYearFmt } from './format.js';
 import { $, headCell, html, link } from './dom.js';
 import { colorOf, key } from './look.js';
-import { statusOf } from './cards.js';
+import { starButton, statusOf } from './cards.js';
 
 export function renderAbout() {
   // One column per server, so the differences read across.
@@ -33,8 +33,10 @@ export function renderAbout() {
     }),
   );
 
+  // The favourite's description comes first, like its card at the top.
   $('about').replaceChildren(
-    ...stats.servers
+    ...[...stats.servers]
+      .sort((a, b) => (b.id === favourite) - (a.id === favourite))
       .filter((server) => server.about)
       .map((server) => {
         const about = server.about;
@@ -50,7 +52,7 @@ export function renderAbout() {
         titles.append(badge, html('h3', '', server.name));
         if (about.glance?.world) titles.append(html('div', 'world', `World ${about.glance.world}`));
         head.dataset.server = server.id;
-        head.append(titles);
+        head.append(titles, starButton(server));
 
         const chips = html('div', 'chips');
         for (const [label, field] of [['Join', 'access'], ['PvP', 'pvp'], ['Since', 'since']]) {

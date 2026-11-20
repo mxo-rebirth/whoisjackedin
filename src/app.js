@@ -1,11 +1,12 @@
 // The page's script: loads the numbers, draws every part of the page, and keeps it up to date.
 import { isRange, linked, range, readingAt, setRange, setReadingAt, setStats, stats } from './page/state.js';
 import { dayTimeFmt, TZ_HOURS } from './page/format.js';
-import { $, cookie, setCookie, stateIcon } from './page/dom.js';
+import { $, stateIcon } from './page/dom.js';
+import { pref, setPref } from './page/prefs.js';
 import { charts, paint } from './page/look.js';
 import { renderNow, renderRanking, renderSummary } from './page/cards.js';
 import { renderPlayers } from './page/players.js';
-import { renderDaily, renderGaps, renderHours, renderOutages, renderPicker, renderRecords, renderUptime, renderWeek } from './page/history.js';
+import { followFavourite, renderDaily, renderGaps, renderHours, renderOutages, renderPicker, renderRecords, renderUptime, renderWeek } from './page/history.js';
 import { renderAbout, renderFooter } from './page/about.js';
 import { startRain } from './page/rain.js';
 import './page/leave.js';
@@ -62,6 +63,11 @@ function renderAll() {
   document.dispatchEvent(new Event('mxo:render'));
 }
 
+document.addEventListener('mxo:favourite', () => {
+  followFavourite();
+  if (stats) renderAll();
+});
+
 function renderEverything() {
   renderNow();
   $('history-off').hidden = Boolean(stats.storage);
@@ -76,7 +82,7 @@ function renderEverything() {
 
 function showSaved() {
   try {
-    const saved = JSON.parse(localStorage.getItem('last-stats'));
+    const saved = JSON.parse(pref('last-stats'));
     if (!saved?.servers || !isRange(saved.history?.range)) return;
     setStats(saved);
     setReadingAt(readingTimeOf(saved));
@@ -109,9 +115,7 @@ async function load({ dim = false } = {}) {
     showBanner('');
     renderAll();
     // Remember the last good data, so there is something to show if the next load fails.
-    try {
-      localStorage.setItem('last-stats', JSON.stringify(stats));
-    } catch {}
+    setPref('last-stats', JSON.stringify(stats));
   } catch (err) {
     if (ticket !== loads) return;
     console.error(err);
@@ -130,9 +134,7 @@ async function load({ dim = false } = {}) {
 
 function selectRange(next, { dim = true } = {}) {
   setRange(next);
-  try {
-    localStorage.setItem('range', next);
-  } catch {}
+  setPref('range', next);
   for (const button of document.querySelectorAll('.ranges button')) {
     button.setAttribute('aria-pressed', String(button.dataset.range === range));
   }
@@ -199,19 +201,19 @@ if ('serviceWorker' in navigator && !/^(localhost|127\.0\.0\.1)$/.test(location.
     const next = root.dataset.accent === 'blue' ? 'green' : 'blue';
     if (next === 'blue') root.dataset.accent = 'blue';
     else delete root.dataset.accent;
-    setCookie('accent', next);
+    setPref('accent', next);
     tint.textContent = name();
     repaint();
   });
   button.textContent = root.dataset.theme === 'light' ? 'Dark mode' : 'Light mode';
   button.addEventListener('click', () => {
     const next = root.dataset.theme === 'light' ? 'dark' : 'light';
-    setCookie('theme', next);
+    setPref('theme', next);
     show(next);
   });
   // Follow the device while no choice has been saved.
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', (event) => {
-    if (!cookie('theme')) show(event.matches ? 'light' : 'dark');
+    if (!pref('theme')) show(event.matches ? 'light' : 'dark');
   });
 }
 

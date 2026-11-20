@@ -1,14 +1,11 @@
 import { $ } from './dom.js';
+import { pref, setPref } from './prefs.js';
 
 // A link to another site first opens a box saying this page vouches for nobody's software, until the
 // visitor ticks "remember my choice". Without scripts, or with no dialog support, links just work.
 export const leave = $('leave');
 
-export let warned = false;
-
-try {
-  warned = localStorage.getItem('warned') === '1';
-} catch {}
+export let warned = pref('warned') === '1';
 
 export function askFirst(event) {
   if (warned || !leave?.showModal || leave.open) return;
@@ -42,9 +39,7 @@ $('leave-go')?.addEventListener('click', () => {
   if ($('leave-keep').checked) {
     // Where the browser keeps nothing, the choice still holds until the page is closed.
     warned = true;
-    try {
-      localStorage.setItem('warned', '1');
-    } catch {}
+    setPref('warned', '1');
   }
   leave.close();
 });

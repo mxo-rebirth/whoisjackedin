@@ -1,7 +1,12 @@
 // Runs before the page is drawn, so the right theme and color are there from the first moment.
-// A saved choice wins. Without one, the theme follows the device's setting and the color is green.
+// A saved choice wins (local storage, see src/page/prefs.js). Without one, the theme follows the device and the color is green.
 (() => {
-  const saved = /(?:^|; )theme=(light|dark)/.exec(document.cookie)?.[1];
-  document.documentElement.dataset.theme = saved ?? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  if (/(?:^|; )accent=blue/.test(document.cookie)) document.documentElement.dataset.accent = 'blue';
+  let theme = null;
+  let accent = null;
+  try {
+    theme = localStorage.getItem('theme');
+    accent = localStorage.getItem('accent');
+  } catch {}
+  document.documentElement.dataset.theme = theme === 'light' || theme === 'dark' ? theme : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  if (accent === 'blue') document.documentElement.dataset.accent = 'blue';
 })();

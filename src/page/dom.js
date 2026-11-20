@@ -3,18 +3,6 @@ export const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export const $ = (id) => document.getElementById(id);
 
-/** A cookie's value, or null. (src/theme.js reads its two cookies itself: it runs before this script loads.) */
-export const cookie = (name) =>
-  document.cookie
-    .split(/;\s*/)
-    .find((pair) => pair.startsWith(`${name}=`))
-    ?.slice(name.length + 1) ?? null;
-
-/** Remembers a choice in a cookie for a year. */
-export const setCookie = (name, value) => {
-  document.cookie = `${name}=${value}; max-age=31536000; path=/; SameSite=Lax`;
-};
-
 export function el(tag, attrs, parent) {
   const node = document.createElementNS(SVG_NS, tag);
   for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, value);

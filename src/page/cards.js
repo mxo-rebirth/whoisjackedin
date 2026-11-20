@@ -1,5 +1,5 @@
 // The top of the page: one card per server, the ranking and the summary table.
-import { RANGE_LABEL, stats } from './state.js';
+import { favourite, RANGE_LABEL, setFavourite, stats } from './state.js';
 import { ago, dayTimeFmt, downtime, percent, players, timeFmt, whole } from './format.js';
 import { $, el, html, link } from './dom.js';
 import { cell, colorOf, key, rowHead, uptimeCell } from './look.js';
@@ -40,6 +40,34 @@ export function sparkline(server, column) {
   return svg;
 }
 
+// The server just starred, so only its new star plays the little animation, once.
+let justStarred = null;
+
+/** The star that marks a server as the visitor's favourite. Only one at a time, and a second click clears it. */
+export function starButton(server) {
+  const on = server.id === favourite;
+  const star = html('button', on && server.id === justStarred ? 'star pop' : 'star');
+  star.type = 'button';
+  star.setAttribute('aria-pressed', String(on));
+  // In a table row the star has no card around it to give it the server's color.
+  star.dataset.server = server.id;
+  star.style.setProperty('--c', colorOf(server.id));
+  star.title = on ? 'Your favourite server' : 'Make this your favourite server';
+  star.setAttribute('aria-label', `${server.name}: ${star.title.toLowerCase()}`);
+  const icon = el('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, star);
+  el('path', { d: 'M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z' }, icon);
+  star.addEventListener('click', () => {
+    // The page is redrawn, so keyboard focus is put back on the same star, or it would fall to the top of the page.
+    const where = star.closest('[id]')?.id;
+    setFavourite(on ? null : server.id);
+    justStarred = on ? null : server.id;
+    document.dispatchEvent(new Event('mxo:favourite'));
+    justStarred = null;
+    document.querySelector(`#${where} .star[data-server="${server.id}"]`)?.focus({ preventScroll: true });
+  });
+  return star;
+}
+
 export function serverCard(server, column) {
   const card = html('div', 'card server');
   card.style.setProperty('--c', colorOf(server.id));
@@ -54,7 +82,7 @@ export function serverCard(server, column) {
   const titles = html('div', 'server-titles');
   titles.append(badge, link(server.name, server.site));
   if (server.about?.glance?.world) titles.append(html('div', 'world', `World ${server.about.glance.world}`));
-  head.append(titles);
+  head.append(titles, starButton(server));
 
   const body = html('div', 'server-body');
   const count = html('div');
@@ -123,7 +151,9 @@ export function renderNow() {
       return item;
     }),
   );
-  $('server-cards').replaceChildren(...stats.servers.map(serverCard));
+  // The favourite comes first. Each card still draws its own column of the saved data.
+  const ordered = [...stats.servers].sort((a, b) => (b.id === favourite) - (a.id === favourite));
+  $('server-cards').replaceChildren(...ordered.map((server) => serverCard(server, stats.servers.indexOf(server))));
 }
 
 /** A ranked list, best first. Equal values share a place. `full` is the value that fills the whole bar. */
@@ -178,12 +208,16 @@ export function renderRanking() {
 }
 
 export function renderSummary() {
+  // The same order as the cards above, so the favourite reads first everywhere.
+  const ordered = [...stats.servers].sort((a, b) => (b.id === favourite) - (a.id === favourite));
   $('summary-rows').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...ordered.map((server) => {
       const s = server.summary;
       const row = html('tr');
-      if (!s.answered) row.append(rowHead(server), cell('–'), cell('–'), cell('–', 'No data yet'));
-      else row.append(rowHead(server), cell(String(s.peak), dayTimeFmt.format(s.peakAt)), cell(whole(s.average)), uptimeCell(s.availability, downtime(s.answered, s.onlineChecks)));
+      const head = rowHead(server);
+      head.append(starButton(server));
+      if (!s.answered) row.append(head, cell('–'), cell('–'), cell('–', 'No data yet'));
+      else row.append(head, cell(String(s.peak), dayTimeFmt.format(s.peakAt)), cell(whole(s.average)), uptimeCell(s.availability, downtime(s.answered, s.onlineChecks)));
       return row;
     }),
   );

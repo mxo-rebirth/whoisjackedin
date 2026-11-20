@@ -1,6 +1,6 @@
 // The longer views: day by day, one server at a time, the weekly pattern, uptime, busiest hours, records,
 // outages and short gaps.
-import { stats, todayKey } from './state.js';
+import { favourite, stats, todayKey } from './state.js';
 import { dateFmt, DAY, dayTimeFmt, downtime, duration, hourLabel, monthDayFmt, monthFmt, niceStep, percent, players, TZ_HOURS, weekdayFmt, whole } from './format.js';
 import { $, headCell, html, stateIcon, tableRow } from './dom.js';
 import { arrowKeys, AXIS_LINE, AXIS_TEXT, BAND_POINTER, cell, chartIn, charts, colorOf, fade, INK, key, mix, rowHead, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, uptimeCell } from './look.js';
@@ -56,10 +56,19 @@ export function renderDaily() {
   });
 }
 
+// The favourite is only where these views start: a server the visitor picked here is not replaced by a new star.
+let pickedByHand = false;
+
+/** Lets the views follow a new favourite, unless the visitor chose a server here. `picked` cannot be set from outside. */
+export function followFavourite() {
+  if (!pickedByHand) picked = null;
+}
+
 /** One switch for the two views that show a single server. */
 
 export function renderPicker() {
-  if (!stats.servers.some((server) => server.id === picked)) picked = stats.servers[0].id;
+  const known = (id) => stats.servers.some((server) => server.id === id);
+  if (!known(picked)) picked = known(favourite) ? favourite : stats.servers[0].id;
   $('server-picker').replaceChildren(
     ...stats.servers.map((server) => {
       const button = html('button');
@@ -68,6 +77,7 @@ export function renderPicker() {
       button.append(key(server.id), server.name);
       button.addEventListener('click', () => {
         picked = server.id;
+        pickedByHand = true;
         renderPicker();
       });
       return button;

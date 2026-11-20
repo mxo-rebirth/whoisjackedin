@@ -1,7 +1,8 @@
 // The main chart: operatives jacked in over the chosen range, with its legend, zoom and table view.
 import { hiddenServers, RANGE_LABEL, stats } from './state.js';
 import { amount, DAY, dayLabel, dayTimeFmt, MINUTE, monthDayFmt, niceStep, timeFmt } from './format.js';
-import { $, cookie, headCell, html, setCookie } from './dom.js';
+import { $, headCell, html } from './dom.js';
+import { pref, setPref } from './prefs.js';
 import { arrowKeys, AXIS_LINE, AXIS_TEXT, chartIn, charts, colorOf, fade, INK, key, mix, MONO, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, tipBox } from './look.js';
 import { statusOf } from './cards.js';
 
@@ -513,12 +514,11 @@ export function renderPlayers() {
   renderPlayersTable(servers);
 }
 
-// Kept in a cookie for a year, like the theme and the color.
 // On unless the visitor switched it off: the whole community first.
-export let together = cookie('together') !== 'off';
+export let together = pref('together') !== 'off';
 $('together-switch').addEventListener('click', () => {
   together = !together;
-  setCookie('together', together ? 'on' : 'off');
+  setPref('together', together ? 'on' : 'off');
   renderPlayers();
 });
 
