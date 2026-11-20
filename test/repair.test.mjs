@@ -9,7 +9,6 @@ import { after, test } from 'node:test';
 const dir = await mkdtemp(path.join(tmpdir(), 'mxo-repair-'));
 process.env.MXO_DATA_DIR = dir;
 delete process.env.KV_REST_API_URL;
-delete process.env.UPSTASH_REDIS_REST_URL;
 const { STATE_KEY, applySample, cleanStandIns, dayOf, hoursKey, newState, rawKey, repairStandIns } = await import('../lib/core.js');
 const { SERVERS } = await import('../lib/sources.js');
 const { mget, write } = await import('../lib/store.js');

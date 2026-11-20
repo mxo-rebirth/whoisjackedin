@@ -1,6 +1,6 @@
 # Who is jacked in: MxO Server Stats
 
-Live player counts for The Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO.
+Live player counts for The Matrix Online community servers.
 
 ## Features
 
@@ -46,18 +46,18 @@ MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 
 ## Deployment
 
-1. Deploy the folder with an Upstash Redis database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and a random `CRON_SECRET`
+1. Deploy the folder with a Redis REST database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and a random `CRON_SECRET`
 2. Call `https://<your-site>/api/collect` every minute with `Authorization: Bearer <CRON_SECRET>`
 
 The page's own address comes from the host's production domain, or from `MXO_SITE` if set.
 
-Without the database there is no history. The "All" view covers one year, so extend it before November 2027.
+Without the database there is no history.
 
 ## Privacy
 
 A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept, and `npm run visitors -- 365` shows them.
 
-Cookies hold the theme, color and "Together" choice. Local storage holds the range, the last numbers and dismissed boxes.
+The browser keeps the theme, color, "Together" switch, range, last numbers and dismissed boxes, in cookies and local storage.
 
 ## License
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { SERVERS } from './lib/sources.js';
 import { iconPng } from './lib/icons.js';
-import { siteUrl } from './lib/site.js';
+import { online, siteUrl } from './lib/site.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(root, 'public');
@@ -113,7 +113,7 @@ const page = fill(squeeze(source.slice(0, open))) + `<style>${css}</style>` + fi
 await writeFile(path.join(out, 'page.html'), page);
 // On your own computer a copy is also left as index.html, so a local server started before this change keeps working.
 // Online it must not exist, or it would be served for "/" instead of the filled-in page.
-if (!process.env.VERCEL) await writeFile(path.join(out, 'index.html'), page);
+if (!online()) await writeFile(path.join(out, 'index.html'), page);
 await writeFile(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /page.html\nDisallow: /api/\nSitemap: ${site}/sitemap.xml\n`);
 await writeFile(
   path.join(out, 'sitemap.xml'),

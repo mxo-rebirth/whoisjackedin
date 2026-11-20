@@ -20,7 +20,7 @@ before(async () => {
   dir = await mkdtemp(path.join(tmpdir(), 'mxo-server-'));
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'seed.mjs'), dir, '2'], { stdio: 'ignore' });
   const env = { ...process.env, MXO_DATA_DIR: dir, MXO_NO_TIMER: '1', PORT: String(PORT) };
-  for (const name of ['CRON_SECRET', 'VERCEL', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN']) delete env[name];
+  for (const name of ['CRON_SECRET', 'VERCEL', 'KV_REST_API_URL', 'KV_REST_API_TOKEN']) delete env[name];
   child = spawn(process.execPath, [path.join(ROOT, 'server.js')], { env, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((resolve) => child.stdout.on('data', (chunk) => String(chunk).includes('Who is jacked in') && resolve()));
 });

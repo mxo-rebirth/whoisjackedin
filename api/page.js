@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { castOf, withCast } from '../lib/cast.js';
 import { buildStats } from '../lib/core.js';
 import { renderPage } from '../lib/page.js';
+import { online } from '../lib/site.js';
 
 let template = null;
 
@@ -14,7 +15,7 @@ let template = null;
  * Read once online, but every time locally, so a new build shows at once.
  */
 async function loadTemplate(req) {
-  if (template && process.env.VERCEL) return template;
+  if (template && online()) return template;
   try {
     template = await readFile(new URL('../public/page.html', import.meta.url), 'utf8');
   } catch {
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
   const page = await loadTemplate(req);
   let body = page;
   try {
-    body = renderPage(page, await buildStats('24h', 0), { links: req.query?.links !== undefined, analytics: Boolean(process.env.VERCEL) });
+    body = renderPage(page, await buildStats('24h', 0), { links: req.query?.links !== undefined, analytics: online() });
   } catch (err) {
     // Without numbers the page still works: its script fetches them.
     console.error(err);

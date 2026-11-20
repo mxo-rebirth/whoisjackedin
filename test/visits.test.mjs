@@ -8,7 +8,6 @@ import { after, test } from 'node:test';
 const dir = await mkdtemp(path.join(tmpdir(), 'mxo-visits-'));
 process.env.MXO_DATA_DIR = dir;
 delete process.env.KV_REST_API_URL;
-delete process.env.UPSTASH_REDIS_REST_URL;
 const { dayTotals, keepDailyTotals, visitSummary } = await import('../lib/visits.js');
 const { write } = await import('../lib/store.js');
 after(() => rm(dir, { recursive: true, force: true }));
