@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { SERVERS } from './lib/sources.js';
 import { iconPng } from './lib/icons.js';
+import { siteUrl } from './lib/site.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(root, 'public');
@@ -102,9 +103,7 @@ const about = SERVERS.filter((server) => server.about)
     return `<div class="card" style="--c: var(${tones[server.id] ?? '--muted'})"><div class="server-head"><div class="server-titles"><h3>${text(server.name)}</h3></div></div><div class="prose">${text(server.about.summary)}</div><dl>${facts}</dl><div class="links">${links}</div></div>`;
   })
   .join('');
-// The page's own address, for search engines and link previews. The project answers on more than one name;
-// this is the one to show.
-const site = process.env.MXO_SITE ?? 'https://whoisjackedin.com';
+const site = siteUrl();
 const fill = (html) => html.replace(ABOUT_SLOT, `<section class="about" id="about">${about}</section>`).replaceAll('__SITE__', site);
 
 const squeeze = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/\n\s*/g, '').replace(/>\s+</g, '><');

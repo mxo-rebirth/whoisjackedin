@@ -5,7 +5,7 @@
 .face.in, .figure canvas.in { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .face, .figure canvas { transition: none; } }
 
-/* The game's icons are 32 pixels square; shown at whole multiples so the pixels stay sharp. */
+/* The game's icons are 32 pixels square, shown at whole multiples so the pixels stay sharp. */
 .glyph { display: block; width: 32px; height: 32px; border-radius: 3px; image-rendering: pixelated; }
 :root[data-cast] h2 { grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; }
 h2 .glyph { grid-row: 1 / span 2; }

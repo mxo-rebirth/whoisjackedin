@@ -100,7 +100,7 @@ export function renderFooter() {
   const legal = html('p', '', 'fan page, not run by the server teams or the owners of The Matrix Online');
   const care = html('p', '', 'not connected to any server project, and no promise that their clients or downloads are safe');
   $('footer').replaceChildren(sources, rule, legal, care);
-  // Visit totals stay private (npm run visitors); only the start of the record is shown.
+  // Visit totals stay private (npm run visitors). Only the start of the record is shown.
   const facts = [];
   if (stats.since) facts.push(`recording since ${fullDateFmt.format(stats.since)}`);
   $('page-facts').replaceChildren(...facts.map((fact) => html('p', '', fact)));

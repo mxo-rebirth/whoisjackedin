@@ -10,7 +10,7 @@ import { renderPage } from '../lib/page.js';
 let template = null;
 
 /**
- * The built page travels with this function; if it somehow does not, it is fetched from the site.
+ * The built page travels with this function. If it somehow does not, it is fetched from the site.
  * Read once online, but every time locally, so a new build shows at once.
  */
 async function loadTemplate(req) {

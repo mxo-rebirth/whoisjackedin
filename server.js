@@ -1,5 +1,5 @@
 // Runs the site locally the way the host does: the same api/ functions, rewrites and headers,
-// and public/. Storage is a folder of files; a timer takes the samples the outside scheduler takes live.
+// and public/. Storage is a folder of files, and a timer takes the samples the outside scheduler takes live.
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';

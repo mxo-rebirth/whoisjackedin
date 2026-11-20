@@ -34,7 +34,7 @@ test('finished days keep their totals, and older days are read from them', async
   assert.deepEqual(ops.map((op) => op.set[0]).sort(), [`mxo:visitday:${before}`, `mxo:visitday:${yesterday}`], 'both finished days, not today');
   await write(ops);
   assert.equal((await keepDailyTotals(now)).length, 0, 'nothing more to save');
-  // The lines of the day before yesterday expire; its totals still count.
+  // The lines of the day before yesterday expire, but its totals still count.
   await unlink(path.join(dir, `mxo_visits_${before}`));
   const summary = await visitSummary(3, now);
   assert.equal(summary.visits, 9);

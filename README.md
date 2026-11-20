@@ -2,12 +2,10 @@
 
 Live player counts for The Matrix Online community servers: Rejacked, MxO Revived, MxOEmu and openMXO.
 
-https://whoisjackedin.com
-
 ## Features
 
 - Players online now, per server and in total, with 24-hour and all-time peaks
-- Player history chart with zoom; outages are dotted
+- Player history chart with zoom, outages dotted
 - Daily numbers, weekly pattern, busiest hours, uptime and outages
 - Server descriptions
 - Dark and light themes, green or blue
@@ -44,23 +42,25 @@ npm run seed -- /tmp/mxo-demo
 MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 ```
 
-`PORT` and `HOST` are supported.
+`PORT` and `HOST` are supported. `npm run visitors` reads `CRON_SECRET` and `MXO_SITE` (the live address) from `.env.local`.
 
 ## Deployment
 
 1. Deploy the folder with an Upstash Redis database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and a random `CRON_SECRET`
 2. Call `https://<your-site>/api/collect` every minute with `Authorization: Bearer <CRON_SECRET>`
 
-Without the database there is no history. The "All" view covers one year; extend it before November 2027.
+The page's own address comes from the host's production domain, or from `MXO_SITE` if set.
+
+Without the database there is no history. The "All" view covers one year, so extend it before November 2027.
 
 ## Privacy
 
-A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept; `npm run visitors -- 365` shows them (needs `CRON_SECRET` in `.env.local`).
+A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept, and `npm run visitors -- 365` shows them.
 
-Cookies hold the theme, color and "Together" choice; local storage holds the range, the last numbers and dismissed boxes.
+Cookies hold the theme, color and "Together" choice. Local storage holds the range, the last numbers and dismissed boxes.
 
 ## License
 
-The code is MIT licensed, see [LICENSE](LICENSE). Charts by Apache ECharts (Apache 2.0); all licenses are in `/assets/licenses.txt` on the site.
+The code is MIT licensed, see [LICENSE](LICENSE). Charts by Apache ECharts (Apache 2.0). All licenses are in `/assets/licenses.txt` on the site.
 
 The Matrix Online is a trademark of Warner Bros. Entertainment Inc. This fan project is not affiliated with or endorsed by Warner Bros. or any of the server teams.

@@ -21,7 +21,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/')) return;
-  // The page: always fresh from the network; the last public copy only when offline.
+  // The page: always fresh from the network, the last public copy only when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)

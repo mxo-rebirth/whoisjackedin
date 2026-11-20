@@ -1,15 +1,15 @@
 // Prints the site's visit numbers. Run "npm run visitors", or "npm run visitors -- 365" for a year.
 // It reads CRON_SECRET from .env.local and never prints it.
-import { readFile } from 'node:fs/promises';
+import { localEnv, siteUrl } from '../lib/site.js';
 
-const site = process.env.MXO_SITE ?? 'https://whoisjackedin.com';
 const days = Number.parseInt(process.argv[2], 10) || 30;
-const env = await readFile(new URL('../.env.local', import.meta.url), 'utf8').catch(() => '');
-const secret = process.env.CRON_SECRET ?? /^CRON_SECRET="?([^"\n]+)"?$/m.exec(env)?.[1];
-if (!secret) {
-  console.error('CRON_SECRET is not set. Put it in .env.local.');
+const env = await localEnv();
+const secret = env.CRON_SECRET;
+if (!secret || !env.MXO_SITE) {
+  console.error('Put CRON_SECRET and MXO_SITE (the live address) in .env.local.');
   process.exit(1);
 }
+const site = siteUrl(env);
 const res = await fetch(`${site}/api/visitors?days=${days}`, { headers: { authorization: `Bearer ${secret}` } });
 if (!res.ok) {
   console.error(`The site answered ${res.status}.`);

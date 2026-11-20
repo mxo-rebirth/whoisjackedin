@@ -31,7 +31,7 @@ export function askFirst(event) {
 
 document.addEventListener('click', askFirst);
 
-// A click with the middle button opens a link in a new tab; it is asked about too.
+// A click with the middle button opens a link in a new tab, so it is asked about too.
 document.addEventListener('auxclick', (event) => {
   if (event.button === 1) askFirst(event);
 });

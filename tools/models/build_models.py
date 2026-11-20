@@ -152,7 +152,7 @@ def skeleton_of(data):
 
 # ---------- moves ----------
 # Sets of moves: what the page calls each move, and the game's animation for it. The game keeps a set of
-# animations per mood; "regal" is the one that stands with the hands behind the back. Women have their own.
+# animations per mood. "regal" is the one that stands with the hands behind the back. Women have their own.
 MOVE_SETS = {
     'regal': ('resource/characters/shared/animations/', {
         'stand': 'stand_regal', 'idle1': 'stand_idle3_regal', 'idle2': 'stand_idle4_regal',

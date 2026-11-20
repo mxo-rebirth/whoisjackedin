@@ -84,8 +84,8 @@ export function shownWindow() {
 }
 
 /**
- * Joins the saved steps into wider ones, so the chart never draws more than about ninety points;
- * zooming in brings the detail back. Each step is { start, end, mean, peak }, one entry per server,
+ * Joins the saved steps into wider ones, so the chart never draws more than about ninety points.
+ * Zooming in brings the detail back. Each step is { start, end, mean, peak }, one entry per server,
  * null where nothing is known.
  */
 
@@ -283,7 +283,7 @@ export function renderPlayers() {
 
   // The scale fits what is on show, so zooming in on a quiet period still fills the chart.
   const sumOf = (step) => shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0);
-  // The "together" line needs room too, which squeezes the servers' lines; that is why it starts switched off.
+  // The "together" line needs room too, which squeezes the servers' lines. That is why it starts switched off.
   const topOf = (step) => (stacked || together ? sumOf(step) : Math.max(0, ...shown.map((i) => step.mean[i] ?? 0)));
   const peak = Math.max(4, ...steps.filter((step) => step.end > view.from && step.start < view.to).map(topOf));
   const tick = niceStep(peak / 4, true);
