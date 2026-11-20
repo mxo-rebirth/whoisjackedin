@@ -52,3 +52,12 @@ test('the hardline code is accepted in any letter case, and nothing else is', ()
   assert.ok(!hasCastKey(key.replaceAll('-', '')));
   delete process.env.CAST_SECRET;
 });
+
+test('the private page links an app manifest that starts at its code', async () => {
+  const { manifest } = await import('../lib/manifest.js');
+  const page = withCast('<link rel="manifest" href="/manifest.webmanifest"></body>', LOCAL_KEY);
+  assert.match(page, new RegExp(`<link rel="manifest" href="/api/manifest\\?code=${LOCAL_KEY}">`));
+  assert.equal(manifest(LOCAL_KEY).start_url, `/${LOCAL_KEY}`);
+  assert.equal(manifest().start_url, '/');
+  assert.equal(manifest(LOCAL_KEY).id, manifest().id);
+});

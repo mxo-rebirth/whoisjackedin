@@ -58,6 +58,14 @@ only('the private link, its cookie, and switching it off', async () => {
   assert.match(off.headers.get('set-cookie'), /^hardline=; Max-Age=0/);
 });
 
+only('the app manifest starts at the code only for a good code', async () => {
+  const good = await get('/api/manifest?code=HL-0000-0000-0000-0000-0000');
+  assert.equal((await good.json()).start_url, '/HL-0000-0000-0000-0000-0000');
+  assert.equal(good.headers.get('cache-control'), 'private, no-store');
+  assert.equal((await (await get('/api/manifest?code=HL-0')).json()).start_url, '/');
+  assert.equal((await (await get('/manifest.webmanifest')).json()).start_url, '/');
+});
+
 only('the numbers, and the parameters they refuse', async () => {
   const res = await get('/api/stats?range=7d&tz=2');
   assert.equal(res.status, 200);
