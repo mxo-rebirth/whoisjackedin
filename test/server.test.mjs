@@ -40,21 +40,22 @@ only('the page comes with its numbers and the security headers from the settings
   const page = await res.text();
   assert.match(page, /id="boot">\{"now":/);
   assert.ok(!page.includes('api/model'), 'the public page has no trace of the private part');
-  assert.ok(!page.includes('github.com'), 'the repo links appear only with ?links');
+  assert.match(page, /github\.com\/hesitancy9996\/whoisjackedin"/, 'the code link is always there');
+  assert.ok(!page.includes('mxo-apple-silicon'), 'the macOS guide link appears only with ?links');
   assert.match(await (await get('/?links')).text(), /github\.com\/hesitancy9996\/mxo-apple-silicon/);
 });
 
 only('the private link, its cookie, and switching it off', async () => {
-  const linked = await get('/?rsi=local');
-  assert.match(await linked.text(), /api\/model\?f=cast\.js&k=local/);
-  assert.match(linked.headers.get('set-cookie'), /^rsid=local;.*HttpOnly/);
+  const linked = await get('/HL-0000-0000-0000-0000-0000');
+  assert.match(await linked.text(), /api\/model\?f=cast\.js&k=HL-0000-0000-0000-0000-0000/);
+  assert.match(linked.headers.get('set-cookie'), /^hardline=HL-0000-0000-0000-0000-0000;.*HttpOnly/);
   assert.doesNotMatch(linked.headers.get('set-cookie'), /Secure/, 'plain http on your own computer');
   assert.equal(linked.headers.get('cache-control'), 'private, no-store');
   // The cookie alone reaches the page through the rewrite.
-  assert.match(await (await get('/', { cookie: 'rsid=local' })).text(), /api\/model\?f=cast\.js/);
-  const off = await get('/?rsi=off', { cookie: 'rsid=local' });
+  assert.match(await (await get('/', { cookie: 'hardline=HL-0000-0000-0000-0000-0000' })).text(), /api\/model\?f=cast\.js/);
+  const off = await get('/HL-0', { cookie: 'hardline=HL-0000-0000-0000-0000-0000' });
   assert.ok(!(await off.text()).includes('api/model'));
-  assert.match(off.headers.get('set-cookie'), /^rsid=; Max-Age=0/);
+  assert.match(off.headers.get('set-cookie'), /^hardline=; Max-Age=0/);
 });
 
 only('the numbers, and the parameters they refuse', async () => {
@@ -70,9 +71,9 @@ only('the numbers, and the parameters they refuse', async () => {
 
 only('the private files need the key', async () => {
   // A copy without the built characters answers "not found" here too.
-  if (existsSync(path.join(ROOT, 'art', 'models', 'flood.bin'))) assert.equal((await get('/api/model?f=flood.bin&k=local')).status, 200);
+  if (existsSync(path.join(ROOT, 'art', 'models', 'flood.bin'))) assert.equal((await get('/api/model?f=flood.bin&k=HL-0000-0000-0000-0000-0000')).status, 200);
   assert.equal((await get('/api/model?f=flood.bin')).status, 404);
-  assert.equal((await get('/api/model?f=../.env.local&k=local')).status, 404);
+  assert.equal((await get('/api/model?f=../.env.local&k=HL-0000-0000-0000-0000-0000')).status, 404);
 });
 
 only('built files are served, nothing outside public/ is', async () => {

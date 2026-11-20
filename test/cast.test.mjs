@@ -5,11 +5,11 @@ import { test } from 'node:test';
 delete process.env.CRON_SECRET;
 delete process.env.CAST_SECRET;
 delete process.env.VERCEL;
-const { castFile, castKey, castOf, castSecret, hasCastKey, withCast } = await import('../lib/cast.js');
+const { LOCAL_KEY, castFile, castKey, castOf, castSecret, hasCastKey, withCast } = await import('../lib/cast.js');
 
-test('without the secret, on your own computer, the key is "local"', () => {
-  assert.equal(castKey(), 'local');
-  assert.ok(hasCastKey('local'));
+test('without the secret, on your own computer, the key is LOCAL_KEY', () => {
+  assert.equal(castKey(), LOCAL_KEY);
+  assert.ok(hasCastKey(LOCAL_KEY));
   assert.ok(!hasCastKey('nope'));
   assert.match(castKey('a secret'), /^HL(-[0-9A-F]{4}){5}$/);
 });
@@ -28,14 +28,14 @@ test('only the cast\'s own files can be asked for', () => {
 });
 
 test('a good link sets the cookie; the cookie alone keeps the private version; a wrong link clears it', () => {
-  const linked = castOf('local', '');
-  assert.equal(linked.key, 'local');
-  assert.match(linked.cookie, /^rsid=local; Max-Age=31536000; Path=\/; HttpOnly; SameSite=Lax; Secure$/);
-  assert.doesNotMatch(castOf('local', '', { secure: false }).cookie, /Secure/);
-  assert.deepEqual(castOf(null, 'theme=dark; rsid=local'), { key: 'local', cookie: null });
-  const off = castOf('off', 'rsid=local');
+  const linked = castOf(LOCAL_KEY, '');
+  assert.equal(linked.key, LOCAL_KEY);
+  assert.match(linked.cookie, /^hardline=HL-0000-0000-0000-0000-0000; Max-Age=31536000; Path=\/; HttpOnly; SameSite=Lax; Secure$/);
+  assert.doesNotMatch(castOf(LOCAL_KEY, '', { secure: false }).cookie, /Secure/);
+  assert.deepEqual(castOf(null, 'theme=dark; hardline=HL-0000-0000-0000-0000-0000'), { key: LOCAL_KEY, cookie: null });
+  const off = castOf('HL-0', 'hardline=HL-0000-0000-0000-0000-0000');
   assert.equal(off.key, null);
-  assert.match(off.cookie, /^rsid=; Max-Age=0/);
+  assert.match(off.cookie, /^hardline=; Max-Age=0/);
   assert.deepEqual(castOf(null, ''), { key: null, cookie: null });
 });
 

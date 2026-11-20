@@ -43,11 +43,15 @@
   ],
   "rewrites": [
     {
+      "source": "/:code([Hh][Ll]-[0-9A-Fa-f-]+)",
+      "destination": "/api/page?code=:code"
+    },
+    {
       "source": "/",
       "has": [
         {
           "type": "cookie",
-          "key": "rsid"
+          "key": "hardline"
         }
       ],
       "destination": "/api/page?saved=1"

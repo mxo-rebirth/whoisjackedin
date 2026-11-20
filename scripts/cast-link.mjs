@@ -10,4 +10,4 @@ if (!secret || !env.MXO_SITE) {
   process.exit(1);
 }
 const site = siteUrl(env);
-console.log(`${site}/?rsi=${castKey(secret)}`);
+console.log(`${site}/${castKey(secret)}`);

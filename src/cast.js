@@ -7,10 +7,7 @@ const key = new URL(document.currentScript.src).searchParams.get('k');
 useKey(key);
 {
   const here = new URL(location.href);
-  if (here.searchParams.has('rsi')) {
-    here.searchParams.delete('rsi');
-    history.replaceState(null, '', here.pathname + here.search + here.hash);
-  }
+  if (/^\/hl-/i.test(here.pathname)) history.replaceState(null, '', '/' + here.search + here.hash);
 }
 
 const $ = (id) => document.getElementById(id);

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
   // The cookie is marked Secure unless the page came over plain http, as it does on your own computer.
   const secure = req.headers['x-forwarded-proto'] !== 'http';
-  const { key, cookie } = castOf(typeof req.query?.rsi === 'string' ? req.query.rsi : null, req.headers.cookie, { secure });
+  const { key, cookie } = castOf(typeof req.query?.code === 'string' ? req.query.code : null, req.headers.cookie, { secure });
   if (cookie) res.setHeader('set-cookie', cookie);
   res.setHeader('content-type', 'text/html; charset=utf-8');
   // Anything that depends on the visitor, or sets a cookie, is for that visitor only.

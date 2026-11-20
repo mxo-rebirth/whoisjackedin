@@ -13,6 +13,7 @@ const PUBLIC = path.join(ROOT, 'public');
 process.env.MXO_DATA_DIR ??= path.join(ROOT, 'data', 'kv');
 
 const { SAMPLE_MS, collect } = await import('./lib/core.js');
+const { rewrite } = await import('./lib/rewrite.js');
 const config = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,23 +26,6 @@ const TYPES = {
 };
 
 const cookiesOf = (header) => Object.fromEntries(String(header ?? '').split(/;\s*/).filter(Boolean).map((pair) => [pair.split('=')[0], pair.slice(pair.indexOf('=') + 1)]));
-
-/**
- * The address after the rewrites. As online, the query of the original address is kept, and a
- * cookie that a rule looks for is handed on as a query value of the same name.
- */
-function rewrite(url, cookies) {
-  for (const rule of config.rewrites ?? []) {
-    if (rule.source !== url.pathname) continue;
-    const needs = (rule.has ?? []).filter((condition) => condition.type === 'cookie');
-    if (!needs.every((condition) => condition.key in cookies)) continue;
-    const next = new URL(rule.destination, url);
-    for (const [name, value] of url.searchParams) if (!next.searchParams.has(name)) next.searchParams.set(name, value);
-    for (const condition of needs) next.searchParams.set(condition.key, cookies[condition.key]);
-    return next;
-  }
-  return url;
-}
 
 /** Adds what the host's functions expect: req.query, req.body, res.status(), res.json(), res.send(). */
 function hostStyle(req, res, url, body) {
@@ -88,7 +72,7 @@ async function functionFor(name) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = rewrite(new URL(req.url, `http://${req.headers.host ?? 'localhost'}`), cookiesOf(req.headers.cookie));
+  const url = rewrite(config.rewrites, new URL(req.url, `http://${req.headers.host ?? 'localhost'}`), cookiesOf(req.headers.cookie));
   for (const { key, value } of config.headers?.[0]?.headers ?? []) res.setHeader(key, value);
   try {
     const name = /^\/api\/([^/]+)$/.exec(url.pathname)?.[1];
