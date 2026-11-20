@@ -193,7 +193,8 @@ function play(body, move, seconds, rounds = 1) {
 function poseNow(body, seconds) {
   const { moves } = body;
   if (!body.playing) play(body, moves.stand, seconds);
-  let { move, since, rounds } = body.playing;
+  let { move, since } = body.playing;
+  const { rounds } = body.playing;
   if (move === moves.stand) {
     if (!still && seconds >= (body.restless ??= seconds + 5 + Math.random() * 6)) play(body, Math.random() < 0.5 ? moves.idle1 : moves.idle2, seconds);
   } else if (seconds - since >= move.seconds * rounds) {

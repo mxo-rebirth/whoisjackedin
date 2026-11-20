@@ -1,5 +1,5 @@
 // The main chart: operatives jacked in over the chosen range, with its legend, zoom and table view.
-import { hiddenServers, range, RANGE_LABEL, stats } from './state.js';
+import { hiddenServers, RANGE_LABEL, stats } from './state.js';
 import { amount, DAY, dayLabel, dayTimeFmt, MINUTE, monthDayFmt, niceStep, timeFmt } from './format.js';
 import { $, headCell, html } from './dom.js';
 import { arrowKeys, AXIS_LINE, AXIS_TEXT, chartIn, charts, colorOf, fade, INK, key, mix, MONO, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, tipBox } from './look.js';

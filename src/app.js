@@ -89,7 +89,7 @@ function showSaved() {
 }
 
 async function load({ dim = false } = {}) {
-  let cachedAt = Date.now();
+  let cachedAt;
   const scoped = document.querySelectorAll('.scoped');
   if (dim) scoped.forEach((node) => node.classList.add('stale'));
   try {

@@ -25,7 +25,6 @@ export function sparkline(server, column) {
   let line = '';
   let area = '';
   let open = false;
-  let lastX = 0;
   points.forEach((row, i) => {
     const v = values[i];
     const x0 = X(Math.max(row[0], from));
@@ -38,7 +37,6 @@ export function sparkline(server, column) {
     line += open ? `V${Y(v)}H${x1}` : `M${x0},${Y(v)}H${x1}`;
     area += open ? `V${Y(v)}H${x1}` : `M${x0},42V${Y(v)}H${x1}`;
     open = true;
-    lastX = x1;
   });
   if (open) area += 'V42Z';
   if (area) el('path', { d: area, fill: colorOf(server.id), 'fill-opacity': 0.12 }, svg);
