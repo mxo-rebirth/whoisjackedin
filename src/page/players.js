@@ -506,8 +506,11 @@ export function renderPlayers() {
   const zoomBase = { filterMode: 'none', minValueSpan: 2 * bucketMs, ...(fresh ? { start: 0, end: 100 } : {}) };
   chart.setOption(
     {
-      animationDuration: stillPage ? 0 : 700,
-      animationDurationUpdate: stillPage ? 0 : 300,
+      // Only the first draw comes in slowly. A server switched back on appears at once, like every other redraw.
+      animationDuration: isNew && !stillPage ? 700 : 0,
+      // A redraw often has a different number of points, and animating between them pairs the wrong ones,
+      // so lines double up and stretch while zooming.
+      animationDurationUpdate: 0,
       grid: PLAYERS_GRID,
       tooltip: { ...TIP, trigger: 'axis', formatter: (params) => playersTip(params[0]?.axisValue ?? to), axisPointer: { type: 'line', snap: false, lineStyle: { color: INK.muted, width: 1, type: 'solid' }, label: { show: false } } },
       xAxis: {

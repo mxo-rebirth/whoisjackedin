@@ -248,6 +248,7 @@ export function renderWeek() {
   const every = node.clientWidth < 520 ? 6 : 3;
   chartIn(node).setOption({
     animationDuration: stillPage ? 0 : 500,
+    animationDurationUpdate: stillPage ? 0 : 300,
     grid: { left: 40, right: 4, top: 22, bottom: 4 },
     tooltip: {
       ...TIP,
@@ -396,6 +397,7 @@ export function renderHours() {
     const step = niceStep(top / 3, true);
     chart.setOption({
       animationDuration: stillPage ? 0 : 600,
+      animationDurationUpdate: stillPage ? 0 : 300,
       grid: { left: 40, right: 12, top: 8, bottom: 24 },
       tooltip: {
         ...TIP,
