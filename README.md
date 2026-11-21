@@ -25,6 +25,8 @@ Each server's public status page is read once a minute:
 
 Discord member counts come from each server's invite link, once an hour. A server counts as down after 15 minutes without a live answer.
 
+The database keeps the minute-by-minute readings for 9 days and the hourly totals for good. With an archive bucket set up, every finished day is also copied there for good, as its readings, hourly totals and visit totals.
+
 ## Development
 
 Node 26.
@@ -44,7 +46,14 @@ npm run seed -- /tmp/mxo-demo
 MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 ```
 
-`PORT` and `HOST` are supported. `npm run visitors` reads `CRON_SECRET` and `MXO_SITE` (the live address) from `.env.local`.
+With the history from the archive:
+
+```sh
+npm run restore -- /tmp/mxo-archive
+MXO_DATA_DIR=/tmp/mxo-archive MXO_NO_TIMER=1 npm start
+```
+
+`PORT` and `HOST` are supported. `npm run visitors` reads `CRON_SECRET` and `MXO_SITE` (the live address) from `.env.local`. `npm run restore` and `npm run archive-check` read the `ARCHIVE_*` settings from it.
 
 ## Deployment
 
@@ -53,11 +62,13 @@ MXO_DATA_DIR=/tmp/mxo-demo MXO_NO_TIMER=1 npm start
 
 The page's own address comes from the host's production domain, or from `MXO_SITE` if set.
 
+For the archive, add an S3-compatible bucket with `ARCHIVE_ENDPOINT`, `ARCHIVE_BUCKET`, `ARCHIVE_KEY_ID` and `ARCHIVE_SECRET`, and `ARCHIVE_REGION` if the provider needs one other than `auto`. Without them nothing is archived.
+
 Without the database there is no history.
 
 ## Privacy
 
-A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept, and `npm run visitors -- 365` shows them.
+A visit is stored as the time, country, device type, referrer and a daily-changing fingerprint, deleted after 90 days. No IP addresses, no tracking cookies. Daily totals are kept, and `npm run visitors -- 365` shows them. The archive holds only those daily totals, never single visits.
 
 The browser keeps the theme, color, "Together" switch, favourite server, range, last numbers and dismissed boxes in its local storage. None of it is sent to the site.
 

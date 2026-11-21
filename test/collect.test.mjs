@@ -10,7 +10,8 @@ const dir = await useTempStore('collect');
 globalThis.fetch = async () => {
   throw new Error('offline in tests');
 };
-const { STATE_KEY, SAMPLE_MS, SILENCE_MS, applySample, collect, newState } = await import('../lib/sampler.js');
+const { SAMPLE_MS, SILENCE_MS, applySample, collect, newState } = await import('../lib/sampler.js');
+const { STATE_KEY } = await import('../lib/keys.js');
 const { daysOf } = await import('../lib/stats.js');
 const { SERVERS } = await import('../lib/sources.js');
 const { write } = await import('../lib/store.js');
@@ -69,4 +70,22 @@ test("days are cut in the viewer's time zone", () => {
   // Two hours ahead of UTC, 22:00 and 23:00 UTC are already the next day.
   const ahead = daysOf(hourly, first.code, 2);
   assert.deepEqual(ahead.map((day) => [new Date(day[0]).toISOString().slice(0, 10), day[3]]), [['2026-11-10', 2], ['2026-11-11', 7]]);
+});
+
+test('a failing archive never costs a reading', async (t) => {
+  const { mget } = await import('../lib/store.js');
+  Object.assign(process.env, { ARCHIVE_ENDPOINT: 'https://bucket.test', ARCHIVE_BUCKET: 'backup', ARCHIVE_KEY_ID: 'id', ARCHIVE_SECRET: 'secret' });
+  t.after(() => ['ARCHIVE_ENDPOINT', 'ARCHIVE_BUCKET', 'ARCHIVE_KEY_ID', 'ARCHIVE_SECRET'].forEach((name) => delete process.env[name]));
+  t.mock.method(console, 'warn', () => {});
+  // Days are due, and the bucket fails every request like everything else here.
+  const state = { ...newState(), since: Date.now() - 5 * 86_400_000, lastT: Date.now() - 120_000, checks: 7 };
+  const { hoursKey } = await import('../lib/keys.js');
+  const { dayOf } = await import('../lib/time.js');
+  const due = [5, 4, 3, 2].map((days) => dayOf(Date.now() - days * 86_400_000));
+  await write([{ set: [STATE_KEY, JSON.stringify(state)] }, ...due.map((day) => ({ set: [hoursKey(day), '{}'] }))]);
+  const { skipped } = await collect({ force: true });
+  assert.equal(skipped, false);
+  const [saved] = await mget([STATE_KEY]);
+  assert.equal(JSON.parse(saved).checks, 8, 'the reading was saved');
+  assert.equal(JSON.parse(saved).archived ?? null, null, 'and nothing counts as archived');
 });

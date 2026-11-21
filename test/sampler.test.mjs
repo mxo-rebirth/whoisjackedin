@@ -4,7 +4,8 @@ import { test } from 'node:test';
 import { MINUTE, roundOf, up, useTempStore } from './support.mjs';
 
 await useTempStore('sampler');
-const { STATE_KEY, applySample, newState, rawKey } = await import('../lib/sampler.js');
+const { applySample, newState } = await import('../lib/sampler.js');
+const { STATE_KEY, rawKey } = await import('../lib/keys.js');
 const { buildStats } = await import('../lib/stats.js');
 const { dayOf } = await import('../lib/time.js');
 const { SERVERS } = await import('../lib/sources.js');

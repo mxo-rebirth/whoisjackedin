@@ -3,7 +3,8 @@
 // The folder is emptied first. It holds three made-up outages: one server down, two with no answer.
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_KEY, applySample, hoursKey, newState, rawKey } from '../lib/sampler.js';
+import { applySample, newState } from '../lib/sampler.js';
+import { STATE_KEY, hoursKey, rawKey } from '../lib/keys.js';
 import { dayOf } from '../lib/time.js';
 import { SERVERS } from '../lib/sources.js';
 

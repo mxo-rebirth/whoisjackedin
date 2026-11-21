@@ -31,6 +31,8 @@ Server files:
 
 | File | Its job |
 | --- | --- |
+| `lib/keys.js` | Every name the data is saved under |
+| `lib/archive.js` | Copying finished days to the archive bucket, and reading them back |
 | `lib/time.js` | Time constants (`HOUR_MS`, `DAY_MS`, `DAY_S`) and `dayOf`, `daysBetween` |
 | `lib/sources.js` | The list of servers and reading each status page |
 | `lib/sampler.js` | The saved state, adding each reading to it, the minute log and the lock |
@@ -44,6 +46,8 @@ Server files:
 | `lib/rewrite.js` | Applying the address and header rules from `vercel.json` on the local server |
 | `lib/helpers/pattern.js` | Reading a rule's source into a regular expression |
 | `lib/helpers/icons.js` | Drawing the app icons as PNG files |
+| `lib/helpers/bucket.js` | Listing, reading and writing the archive bucket |
+| `lib/helpers/s3-sign.js` | Signing requests to the bucket |
 | `lib/helpers/in-order.js` | `inOrder()`, for steps that must not overlap |
 | `lib/visits.js` | Visit lines and daily visit totals |
 
@@ -62,7 +66,7 @@ Page files:
 - `camelCase` for functions and variables, `UPPER_CASE` for fixed values. At least two letters, except `i`, `j` and `id`.
 - A yes-or-no value reads like one: `isRange`, `counted`, `installed`
 - A length of time says its unit: `SAMPLE_MS`, `DAY_S`, `RAW_KEEP_DAYS`
-- Each storage key is built by one function or constant (`rawKey(day)`, `hoursKey(day)`, `STATE_KEY`) and never typed out again
+- Each storage key is built by one function or constant in `lib/keys.js` (`rawKey(day)`, `hoursKey(day)`, `STATE_KEY`) and never typed out again
 
 ## Functional Style
 
@@ -212,6 +216,7 @@ The minute log is the source of truth. Everything else is built from it as each 
 | `mxo:visits:<day>` | the visit log, one line per visit | 90 days | `api/hit.js` |
 | `mxo:visitday:<day>` | daily visit totals | always | `api/hit.js` |
 | `mxo:damaged:*` | a saved state that could not be read, kept aside | 30 days | `loadState` |
+| `raw/`, `hours/`, `visits/` in the archive bucket | a copy of each finished day | always | the sampler, once the day is final |
 | `mxo:lock` | held while a reading is being saved | seconds | the sampler |
 
 Rules:
