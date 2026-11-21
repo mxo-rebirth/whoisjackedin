@@ -314,7 +314,7 @@ npm run dupes    # copied code
 - Pull request titles use the same format, typed by what the PR is mainly about. The description follows `.github/pull_request_template.md` and lists every feature and fix it carries.
 - One commit per real step. Small follow-up fixes are merged into that commit before pushing.
 - No names of users, accounts or other projects, and no AI credits
-- Lint, dupes, build and tests pass before every commit
+- Lint, dupes, build and tests pass before every commit. GitHub runs them again on every pull request (`.github/workflows/check.yml`)
 
 ## Things That Have Bitten Us
 
