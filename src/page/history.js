@@ -298,6 +298,8 @@ export function renderUptime() {
       const byDay = new Map(server.allTime.days.map(([t, answered, online]) => [t, { answered, online }]));
       let answered = 0;
       let online = 0;
+      // The share covers the days in the strip, so the label counts those, not every day loaded.
+      let counted = 0;
       const strip = html('div', 'strip');
       for (let i = 89; i >= 0; i--) {
         const t = today - i * DAY;
@@ -309,6 +311,7 @@ export function renderUptime() {
         } else {
           answered += day.answered;
           online += day.online;
+          counted += 1;
           const share = day.online / day.answered;
           cellNode.className = share >= 0.995 ? 'good' : share >= 0.95 ? 'warning' : 'critical';
           cellNode.title = `${label}: ${share >= 0.995 ? 'operational' : share >= 0.95 ? 'partial outage' : 'major outage'}, online ${percent(share)} of the time, ${downtime(day.answered, day.online)}`;
@@ -320,11 +323,11 @@ export function renderUptime() {
       const name = html('span', 'name');
       name.append(key(server.id), server.name);
       const total = html('span');
-      if (answered) total.append(html('strong', '', percent(online / answered)), html('span', 'note', ` over ${byDay.size} ${byDay.size === 1 ? 'day' : 'days'}`));
+      if (answered) total.append(html('strong', '', percent(online / answered)), html('span', 'note', ` over ${counted} ${counted === 1 ? 'day' : 'days'}`));
       else total.append(html('span', 'note', 'no data yet'));
       head.append(name, total);
       strip.setAttribute('role', 'img');
-      strip.setAttribute('aria-label', answered ? `${server.name}: online ${percent(online / answered)} of the time over ${byDay.size} days of data` : `${server.name}: no data yet`);
+      strip.setAttribute('aria-label', answered ? `${server.name}: online ${percent(online / answered)} of the time over ${counted} ${counted === 1 ? 'day' : 'days'} of data` : `${server.name}: no data yet`);
       row.append(head, strip);
       return row;
     }),
