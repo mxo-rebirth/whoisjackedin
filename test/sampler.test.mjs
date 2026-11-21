@@ -81,3 +81,23 @@ test('the chart breaks inside a confirmed outage instead of showing the stand-in
   // The stand-ins are not counted as readings either.
   assert.equal(stats.servers[mine].summary.answered, 40);
 });
+
+test('an outage from a page that stopped updating starts when it stopped', () => {
+  const state = newState();
+  const start = Date.UTC(2026, 10, 21, 22, 0);
+  applySample(state, start, round(up(5)));
+  // Refused as stale six minutes later, stopped at 22:01.
+  applySample(state, start + 6 * MINUTE, round({ ok: false, error: 'the status page stopped updating', since: start + MINUTE }));
+  assert.equal(state.all[first.id].run.from, start + MINUTE);
+  assert.equal(state.latest[first.id].unsureSince, start + MINUTE);
+});
+
+test('a stand-in never sets the record of all servers together', () => {
+  const state = newState();
+  const start = Date.UTC(2026, 10, 21, 20, 0);
+  applySample(state, start, round(up(10), up(1)));
+  // The first server's 10 stands in while the second really rises to 20.
+  applySample(state, start + MINUTE, round(silent, up(20)));
+  const others = SERVERS.length - 2;
+  assert.equal(state.total.recordPeak, 20 + others, 'counted from real readings only');
+});

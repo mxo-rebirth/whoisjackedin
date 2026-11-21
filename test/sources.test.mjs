@@ -13,13 +13,13 @@ test('every server has a unique id and one-letter code', () => {
 });
 
 test('Rejacked', () => {
-  const r = server('rejacked').read({ status: { online: true, playersOnline: 5, checkedAt: '2026-11-18T10:00:00Z' }, launcher: { latestVersion: '0.5.0' } });
+  const r = server('rejacked').read({ status: { online: true, playersOnline: 5, checkedAt: '2026-11-18T10:00:00Z' }, launcher: { latestVersion: '0.5.0' } }, Date.parse('2026-11-18T10:01:00Z'));
   assert.deepEqual([r.online, r.players, r.checkedAt], [true, 5, '2026-11-18T10:00:00Z']);
   assert.deepEqual(r.details.map((d) => d.label), ['World', 'Launcher']);
   fails('rejacked', {});
   fails('rejacked', { status: { online: true, playersOnline: -1 } });
   // When the server is down the count is null.
-  const down = server('rejacked').read({ status: { online: false, playersOnline: null, checkedAt: '2026-11-18T16:53:58Z' } });
+  const down = server('rejacked').read({ status: { online: false, playersOnline: null, checkedAt: '2026-11-18T16:53:58Z' } }, Date.parse('2026-11-18T16:54:30Z'));
   assert.deepEqual([down.online, down.players], [false, 0]);
 });
 
@@ -48,4 +48,29 @@ test('openMXO: only the state and the length of the list are read', () => {
   fails('openmxo', { state: 'live', ageMs: 40_000, players: [] }); // stale
   fails('openmxo', { state: 'unavailable', players: [] });
   fails('openmxo', { state: 'live' });
+});
+
+test('an online reading from a status page whose own time stopped moving counts as no answer', () => {
+  const at = Date.parse('2026-11-21T22:00:00Z');
+  const minutes = (n) => at + n * 60_000;
+  const rejacked = { status: { online: true, playersOnline: 12, checkedAt: '2026-11-21T22:00:00Z' } };
+  const revived = { status: 'live', onlinePlayers: 20, checkedAt: '2026-11-21T22:00:00Z' };
+  // Five minutes off, either way, is still live.
+  assert.equal(server('rejacked').read(rejacked, minutes(5)).players, 12);
+  assert.equal(server('revived').read(revived, minutes(-5)).players, 20);
+  // Older is refused, with the time it stopped.
+  assert.throws(() => server('rejacked').read(rejacked, minutes(6)), (err) => err.message === 'the status page stopped updating' && err.since === at);
+  assert.throws(() => server('revived').read(revived, minutes(30)), /the status page stopped updating/);
+  // A clock far ahead is refused too.
+  assert.throws(() => server('revived').read(revived, minutes(-10)), /the status page's clock is ahead/);
+});
+
+test('what a stale status page cannot distort is kept', () => {
+  const later = Date.parse('2026-11-21T23:00:00Z');
+  // Offline counts nobody, so it stays offline.
+  assert.equal(server('revived').read({ status: 'maintenance', checkedAt: '2026-11-21T22:00:00Z' }, later).online, false);
+  assert.equal(server('rejacked').read({ status: { online: false, playersOnline: null, checkedAt: '2026-11-21T22:00:00Z' } }, later).online, false);
+  // Without a zone or a time there is nothing to judge.
+  assert.equal(server('revived').read({ status: 'live', onlinePlayers: 3, checkedAt: '2026-11-21T22:00:00' }, later).players, 3);
+  assert.equal(server('revived').read({ status: 'live', onlinePlayers: 3 }, later).players, 3);
 });

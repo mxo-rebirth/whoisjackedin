@@ -23,7 +23,7 @@ Each server's public status page is read once a minute:
 | MxOEmu | `https://mxoemu.info/api/servers` |
 | openMXO | `https://openmxo.com/forum/map/presence` (player count only) |
 
-Discord member counts come from each server's invite link, once an hour. A server counts as down after 15 minutes without a live answer.
+Discord member counts come from each server's invite link, once an hour. A status page whose own timestamp is more than 5 minutes old gives no live answer. A server counts as down after 15 minutes without a live answer.
 
 The database keeps the minute-by-minute readings for 9 days and the hourly totals for good. With an archive bucket set up, every finished day is also copied there for good, as its readings, hourly totals and visit totals.
 
