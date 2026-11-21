@@ -4,7 +4,7 @@ import * as echarts from 'echarts/core';
 import { BarChart, EffectScatterChart, HeatmapChart, LineChart } from 'echarts/charts';
 import { DataZoomComponent, GridComponent, MarkAreaComponent, TooltipComponent, VisualMapContinuousComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { stats } from './state.js';
+import { inViewOrder, stats } from './state.js';
 import { percent, whole } from './format.js';
 import { headCell, html } from './dom.js';
 
@@ -135,7 +135,7 @@ export function serversTip(when, what, values, together, notes) {
   let exact = 0;
   let known = 0;
   const rows = [];
-  stats.servers.forEach((server, i) => {
+  inViewOrder().forEach(([server, i]) => {
     if (values[i] === undefined) return;
     if (values[i] !== null) {
       // The whole numbers shown are added up, so the rows always add up to the "together" row.
@@ -216,7 +216,7 @@ export function serverHead(server) {
 export function serverRow(label, values, most) {
   const row = html('tr');
   row.append(html('td', '', label));
-  stats.servers.forEach((server, i) => {
+  inViewOrder().forEach(([server, i]) => {
     const value = values[i];
     const td = html('td', value === null ? 'note' : 'bar', value === null ? 'No data' : whole(value));
     if (value !== null) {

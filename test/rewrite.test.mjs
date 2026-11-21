@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { rewrite } from '../lib/rewrite.js';
+import { headersFor, rewrite } from '../lib/rewrite.js';
 
-const { rewrites } = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+const { headers, rewrites } = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
 const at = (path, cookies = {}) => {
   const url = rewrite(rewrites, new URL(path, 'http://localhost'), cookies);
   return url.pathname + url.search;
@@ -20,4 +20,13 @@ test('the home page, the saved cookie and other paths keep their rules', () => {
   assert.equal(at('/', { hardline: 'x' }), '/api/page?saved=1&hardline=x');
   assert.equal(at('/HL-<script>'), '/HL-%3Cscript%3E');
   assert.equal(at('/assets/app.js'), '/assets/app.js');
+});
+
+test('every header rule that matches applies: the versioned script is kept for a year, everything has the security headers', () => {
+  const script = headersFor(headers, '/assets/app-ABC123.js');
+  assert.equal(script['Cache-Control'], 'public, max-age=31536000, immutable');
+  assert.match(script['Content-Security-Policy'], /default-src 'none'/);
+  const page = headersFor(headers, '/');
+  assert.equal(page['Cache-Control'], undefined);
+  assert.match(page['Content-Security-Policy'], /default-src 'none'/);
 });

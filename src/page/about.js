@@ -1,5 +1,5 @@
 // The server descriptions and the footer.
-import { favourite, stats } from './state.js';
+import { serversInView, stats } from './state.js';
 import { fullDateFmt, monthYearFmt } from './format.js';
 import { $, headCell, html, link } from './dom.js';
 import { colorOf, key } from './look.js';
@@ -7,7 +7,7 @@ import { starButton, statusOf } from './cards.js';
 
 export function renderAbout() {
   // One column per server, so the differences read across.
-  const described = stats.servers.filter((server) => server.about?.glance);
+  const described = serversInView().filter((server) => server.about?.glance);
   $('glance-card').hidden = !described.length;
   $('glance-head').replaceChildren(
     headCell(''),
@@ -33,10 +33,8 @@ export function renderAbout() {
     }),
   );
 
-  // The favourite's description comes first, like its card at the top.
   $('about').replaceChildren(
-    ...[...stats.servers]
-      .sort((a, b) => (b.id === favourite) - (a.id === favourite))
+    ...serversInView()
       .filter((server) => server.about)
       .map((server) => {
         const about = server.about;

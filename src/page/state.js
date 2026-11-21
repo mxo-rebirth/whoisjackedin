@@ -23,12 +23,21 @@ export let readingAt = null;
 
 export const hiddenServers = new Set(); // switched off in the legend
 
-/** The visitor's favourite server, or null. Its card comes first and the single-server views start on it. */
+/** The visitor's favourite server, or null. It comes first in every list that is not ranked, and the single-server views start on it. */
 export let favourite = pref('favourite');
 export const setFavourite = (id) => {
   favourite = id;
   setPref('favourite', id);
 };
+
+/**
+ * The servers in the order the page lists them: the favourite first, the rest as they come. Each comes with its
+ * place in the saved data, which never moves, so values are still read from the right column.
+ */
+export const inViewOrder = () => stats.servers.map((server, i) => [server, i]).toSorted(([a], [b]) => (b.id === favourite) - (a.id === favourite));
+
+/** Just the servers, in that order. */
+export const serversInView = () => inViewOrder().map(([server]) => server);
 
 // A star set in another tab of this site shows here too, so a click in a stale tab cannot undo it unseen.
 addEventListener('storage', (event) => {

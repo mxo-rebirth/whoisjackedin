@@ -1,5 +1,5 @@
 // The top of the page: one card per server, the ranking and the summary table.
-import { favourite, RANGE_LABEL, setFavourite, stats } from './state.js';
+import { favourite, inViewOrder, RANGE_LABEL, serversInView, setFavourite, stats } from './state.js';
 import { ago, dayTimeFmt, downtime, percent, players, timeFmt, whole } from './format.js';
 import { $, el, html, link } from './dom.js';
 import { cell, colorOf, key, rowHead, uptimeCell } from './look.js';
@@ -118,7 +118,7 @@ export function serverCard(server, column) {
 }
 
 export function renderNow() {
-  const counted = stats.servers.filter((server) => statusOf(server.now).counted);
+  const counted = serversInView().filter((server) => statusOf(server.now).counted);
   const silent = stats.servers.filter((server) => statusOf(server.now).text === 'NO SIGNAL').length;
   const total = counted.reduce((sum, server) => sum + server.now.players, 0);
   $('total-now').textContent = counted.length || !silent ? total : '–';
@@ -143,7 +143,7 @@ export function renderNow() {
   );
   $('share').setAttribute('aria-label', total ? counted.map((s) => `${s.name} ${players(s.now.players)}`).join(', ') : 'Nobody jacked in right now');
   $('share-legend').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...serversInView().map((server) => {
       const item = html('span');
       const isCounted = counted.includes(server);
       item.append(key(server.id), server.name, html('strong', '', isCounted ? String(server.now.players) : '–'));
@@ -151,9 +151,7 @@ export function renderNow() {
       return item;
     }),
   );
-  // The favourite comes first. Each card still draws its own column of the saved data.
-  const ordered = [...stats.servers].sort((a, b) => (b.id === favourite) - (a.id === favourite));
-  $('server-cards').replaceChildren(...ordered.map((server) => serverCard(server, stats.servers.indexOf(server))));
+  $('server-cards').replaceChildren(...inViewOrder().map(([server, i]) => serverCard(server, i)));
 }
 
 /** A ranked list, best first. Equal values share a place. `full` is the value that fills the whole bar. */
@@ -208,10 +206,8 @@ export function renderRanking() {
 }
 
 export function renderSummary() {
-  // The same order as the cards above, so the favourite reads first everywhere.
-  const ordered = [...stats.servers].sort((a, b) => (b.id === favourite) - (a.id === favourite));
   $('summary-rows').replaceChildren(
-    ...ordered.map((server) => {
+    ...serversInView().map((server) => {
       const s = server.summary;
       const row = html('tr');
       const head = rowHead(server);

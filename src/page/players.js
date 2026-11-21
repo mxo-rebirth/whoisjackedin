@@ -1,5 +1,5 @@
 // The main chart: operatives jacked in over the chosen range, with its legend, zoom and table view.
-import { hiddenServers, RANGE_LABEL, stats } from './state.js';
+import { hiddenServers, inViewOrder, RANGE_LABEL, serversInView, stats } from './state.js';
 import { amount, DAY, dayLabel, dayTimeFmt, MINUTE, monthDayFmt, niceStep, timeFmt } from './format.js';
 import { $, headCell, html } from './dom.js';
 import { pref, setPref } from './prefs.js';
@@ -17,7 +17,7 @@ export const legendValues = new Map(); // server id -> the number shown next to 
 export function renderLegend() {
   legendValues.clear();
   $('players-legend').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...serversInView().map((server) => {
       const item = html('button');
       item.type = 'button';
       item.setAttribute('aria-pressed', String(!hiddenServers.has(server.id)));
@@ -171,7 +171,7 @@ export function renderReadout() {
 export function playersTip(t) {
   const step = steps.find((item) => t >= item.start && t < item.end);
   if (!step) return tipBox(dayTimeFmt.format(t), 'not recorded', []);
-  const down = stats.servers.filter((server) => !hiddenServers.has(server.id) && server.allTime.outages.some((o) => o.from < step.end && o.to > step.start));
+  const down = serversInView().filter((server) => !hiddenServers.has(server.id) && server.allTime.outages.some((o) => o.from < step.end && o.to > step.start));
   // A server with an outage at this moment gets a line of its own: "MxO Revived down".
   return serversTip(
     `${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`,
@@ -390,7 +390,8 @@ function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, 
         showSymbol: false,
         symbol: 'circle',
         symbolSize: 9,
-        z: stacked ? 10 - k : 3,
+        // Paint order comes from the place in the list, not from the order the chart first saw the series in.
+        z: stacked ? 10 - k : 3 + k,
         itemStyle: { color, borderColor: INK.surface, borderWidth: 2 },
         // Stacked layers: a bright line along each layer's top and a dim fill that fades towards the bottom,
         // so the shape reads from its edges instead of from blocks of solid color.
@@ -417,7 +418,7 @@ function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, 
       showSymbol: false,
       silent: true,
       animation: false,
-      z: 3,
+      z: 3 + shown.length,
       lineStyle: { width: 2, type: [2, 4], cap: 'round', color: colorOf(servers[i].id) },
       tooltip: { show: false },
     })),
@@ -438,10 +439,10 @@ function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, 
 }
 
 /** The table under "Show as table": one row per joined step, newest first. */
-function renderPlayersTable(servers) {
+function renderPlayersTable() {
   $('players-empty').hidden = steps.length >= 2;
   const most = Math.max(1, ...steps.flatMap((step) => step.mean.map((value) => value ?? 0)));
-  $('players-head').replaceChildren(headCell('Time'), ...servers.map(serverHead));
+  $('players-head').replaceChildren(headCell('Time'), ...serversInView().map(serverHead));
   $('players-rows').replaceChildren(
     ...steps
       .slice()
@@ -468,7 +469,7 @@ export function renderPlayers() {
   steps = joined;
   stepMs = width;
   const view = shownWindow();
-  const shown = servers.map((_, i) => i).filter((i) => !hiddenServers.has(servers[i].id));
+  const shown = inViewOrder().map(([, i]) => i).filter((i) => !hiddenServers.has(servers[i].id));
   syncControls();
 
   const { yMax, ticks, pixel, nudge } = scaleOf(chart, shown, view);
@@ -511,7 +512,7 @@ export function renderPlayers() {
     { replaceMerge: ['series'] },
   );
 
-  renderPlayersTable(servers);
+  renderPlayersTable();
 }
 
 // On unless the visitor switched it off: the whole community first.

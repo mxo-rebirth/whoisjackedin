@@ -1,6 +1,6 @@
 // The longer views: day by day, one server at a time, the weekly pattern, uptime, busiest hours, records,
 // outages and short gaps.
-import { favourite, stats, todayKey } from './state.js';
+import { favourite, inViewOrder, serversInView, stats, todayKey } from './state.js';
 import { dateFmt, DAY, dayTimeFmt, downtime, duration, hourLabel, monthDayFmt, monthFmt, niceStep, percent, players, TZ_HOURS, weekdayFmt, whole } from './format.js';
 import { $, headCell, html, stateIcon, tableRow } from './dom.js';
 import { arrowKeys, AXIS_LINE, AXIS_TEXT, BAND_POINTER, cell, chartIn, charts, colorOf, fade, INK, key, mix, rowHead, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, uptimeCell } from './look.js';
@@ -43,7 +43,7 @@ export function renderDaily() {
     },
     xAxis: { type: 'category', data: days.map((t) => dateFmt.format(t)), axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: { ...AXIS_TEXT, hideOverlap: true } },
     yAxis: { type: 'value', min: 0, max: Math.ceil(peak / step) * step, interval: step, axisLabel: AXIS_TEXT, splitLine: SPLIT_LINE },
-    series: servers.map((server, i) => ({
+    series: inViewOrder().map(([server, i]) => ({
       id: server.id,
       name: server.name,
       type: 'bar',
@@ -53,7 +53,8 @@ export function renderDaily() {
       barMaxWidth: 22,
       itemStyle: { color: colorOf(server.id), borderRadius: [4, 4, 0, 0] },
     })),
-  });
+    // Drawn afresh each time: merged by id, the bars would keep their old order. There is no zoom here to lose.
+  }, { notMerge: true });
 }
 
 // The favourite is only where these views start: a server the visitor picked here is not replaced by a new star.
@@ -70,7 +71,7 @@ export function renderPicker() {
   const known = (id) => stats.servers.some((server) => server.id === id);
   if (!known(picked)) picked = known(favourite) ? favourite : stats.servers[0].id;
   $('server-picker').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...serversInView().map((server) => {
       const button = html('button');
       button.type = 'button';
       button.setAttribute('aria-pressed', String(server.id === picked));
@@ -294,7 +295,7 @@ export function renderWeek() {
 export function renderUptime() {
   const today = todayKey();
   $('uptime').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...serversInView().map((server) => {
       const byDay = new Map(server.allTime.days.map(([t, answered, online]) => [t, { answered, online }]));
       let answered = 0;
       let online = 0;
@@ -337,7 +338,7 @@ export function renderUptime() {
 export function renderRecords() {
   $('alltime-scope').textContent = stats.since ? `counting since ${monthDayFmt.format(stats.since)}` : '';
   $('records-rows').replaceChildren(
-    ...stats.servers.map((server) => {
+    ...serversInView().map((server) => {
       const a = server.allTime;
       const row = html('tr');
       const record = a.recordPeak === null ? cell('–', 'No data yet') : cell(String(a.recordPeak), dayTimeFmt.format(a.recordAt));
@@ -379,7 +380,7 @@ export function hourBox(server) {
   node.setAttribute('aria-label', `Average operatives by hour of day on ${server.name}. Use the left and right arrow keys to read values.`);
   root.append(head, node);
   $('hours-charts').append(root);
-  const made = { peakNote, chart: chartIn(node) };
+  const made = { root, peakNote, chart: chartIn(node) };
   arrowKeys(node, () => 24, (hour) => showTipAt(made.chart, hour));
   hourBoxes.set(server.id, made);
   return made;
@@ -433,7 +434,9 @@ export function renderHours() {
   });
 
   const mostAnyHour = Math.max(1, ...perServer.flatMap((slots) => slots.map((slot) => slot.average ?? 0)));
-  $('hours-head').replaceChildren(headCell('Hour'), ...stats.servers.map(serverHead));
+  // Made once, so they are moved into the order of the other views when the favourite changes.
+  $('hours-charts').append(...serversInView().map((server) => hourBoxes.get(server.id).root));
+  $('hours-head').replaceChildren(headCell('Hour'), ...serversInView().map(serverHead));
   $('hours-rows').replaceChildren(
     ...Array.from({ length: 24 }, (_, hour) =>
       serverRow(`${hourLabel(hour)} to ${hourLabel(hour + 1)}`, perServer.map((slots) => slots[hour].average), mostAnyHour),
@@ -485,7 +488,7 @@ export function renderGaps() {
     return gap.detail ? `no answer (${gap.detail})` : 'no answer';
   };
   // One line per server on how often it happened in the last day, then the latest ones.
-  const counts = stats.servers
+  const counts = serversInView()
     .map((server) => ({ server, count: (server.allTime.gaps ?? []).filter((gap) => gap.from > stats.now - DAY).length }))
     .filter((entry) => entry.count)
     .map((entry) => {

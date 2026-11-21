@@ -13,7 +13,7 @@ const PUBLIC = path.join(ROOT, 'public');
 process.env.MXO_DATA_DIR ??= path.join(ROOT, 'data', 'kv');
 
 const { SAMPLE_MS, collect } = await import('./lib/sampler.js');
-const { rewrite } = await import('./lib/rewrite.js');
+const { headersFor, rewrite } = await import('./lib/rewrite.js');
 const { cookiesOf } = await import('./lib/cookies.js');
 const config = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
 const TYPES = {
@@ -72,8 +72,10 @@ async function functionFor(name) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = rewrite(config.rewrites, new URL(req.url, `http://${req.headers.host ?? 'localhost'}`), cookiesOf(req.headers.cookie));
-  for (const { key, value } of config.headers?.[0]?.headers ?? []) res.setHeader(key, value);
+  const asked = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
+  const url = rewrite(config.rewrites, asked, cookiesOf(req.headers.cookie));
+  // Like the host, every header rule that matches the address asked for applies.
+  for (const [key, value] of Object.entries(headersFor(config.headers, asked.pathname))) res.setHeader(key, value);
   try {
     const name = /^\/api\/([^/]+)$/.exec(url.pathname)?.[1];
     if (name) {
