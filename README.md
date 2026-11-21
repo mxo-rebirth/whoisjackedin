@@ -5,7 +5,7 @@ Live player counts for The Matrix Online community servers.
 ## Features
 
 - Players online now, per server and in total, with 24-hour and all-time peaks
-- Player history chart with zoom, outages dotted
+- Player history chart with zoom, outages dotted, each server's peak marked
 - Daily numbers, weekly pattern, busiest hours, uptime and outages
 - Server descriptions
 - Dark and light themes, green or blue

@@ -2,13 +2,13 @@
 // library with only the parts the page uses.
 import * as echarts from 'echarts/core';
 import { BarChart, EffectScatterChart, HeatmapChart, LineChart } from 'echarts/charts';
-import { DataZoomComponent, GridComponent, MarkAreaComponent, TooltipComponent, VisualMapContinuousComponent } from 'echarts/components';
+import { DataZoomComponent, GridComponent, MarkAreaComponent, MarkPointComponent, TooltipComponent, VisualMapContinuousComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { inViewOrder, stats } from './state.js';
 import { percent, whole } from './format.js';
 import { headCell, html } from './dom.js';
 
-echarts.use([BarChart, EffectScatterChart, HeatmapChart, LineChart, DataZoomComponent, GridComponent, MarkAreaComponent, TooltipComponent, VisualMapContinuousComponent, CanvasRenderer]);
+echarts.use([BarChart, EffectScatterChart, HeatmapChart, LineChart, DataZoomComponent, GridComponent, MarkAreaComponent, MarkPointComponent, TooltipComponent, VisualMapContinuousComponent, CanvasRenderer]);
 
 // The charts are drawn on a canvas, which cannot read CSS variables. The page's colors are read into
 // these objects, and read again whenever the theme changes (see paint()).
@@ -118,7 +118,9 @@ export function tipBox(when, what, rows, notes = []) {
     ...notes.map((note) => html('div', 'tip-note', note)),
     ...rows.map((row) => {
       const line = html('div', row.sum ? 'tip-row sum' : 'tip-row');
-      line.append(row.id ? key(row.id) : html('span'), html('span', 'name', row.name ?? ''), html('strong', '', row.value));
+      const value = html('strong', '', row.value);
+      if (row.most) value.append(html('span', 'tip-most', `most ${row.most}`));
+      line.append(row.id ? key(row.id) : html('span'), html('span', 'name', row.name ?? ''), value);
       return line;
     }),
   );
@@ -127,10 +129,10 @@ export function tipBox(when, what, rows, notes = []) {
 
 /**
  * The hover box every chart uses. `values` has one entry per server: a number, null for no data, or
- * undefined to leave the server out. `together` adds a sum row, which only suits averages: peaks
+ * undefined to leave the server out. `peaks`, in the same order, adds the most seen at once where higher. `together` adds a sum row, which only suits averages: peaks
  * happen at different moments, so they cannot be added up.
  */
-export function serversTip(when, what, values, together, notes) {
+export function serversTip(when, what, values, { together = false, notes = [], peaks = [] } = {}) {
   let sum = 0;
   let exact = 0;
   let known = 0;
@@ -144,7 +146,9 @@ export function serversTip(when, what, values, together, notes) {
         exact += values[i];
         known += 1;
       }
-      rows.push({ id: server.id, name: server.name, value: values[i] === null ? '–' : whole(values[i]) });
+      // An average hides a short high, so a higher moment in the same stretch is named next to it.
+      const most = values[i] !== null && peaks[i] > Math.round(values[i]) ? peaks[i] : null;
+      rows.push({ id: server.id, name: server.name, value: values[i] === null ? '–' : whole(values[i]), most });
     });
   if (together && known && rows.length > 1) rows.push({ name: 'together', value: sum === 0 && exact > 0 ? '<1' : String(sum), sum: true });
   return tipBox(when, what, rows, notes);

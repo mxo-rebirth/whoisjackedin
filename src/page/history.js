@@ -37,7 +37,7 @@ export function renderDaily() {
       axisPointer: BAND_POINTER,
       formatter: (params) => {
         const t = days[params[0]?.dataIndex ?? days.length - 1];
-        return serversTip(dateFmt.format(t) + (t === today ? ', so far' : ''), 'most at once', servers.map((_, i) => byDay[i].get(t)?.[3] ?? null), false);
+        return serversTip(dateFmt.format(t) + (t === today ? ', so far' : ''), 'most at once', servers.map((_, i) => byDay[i].get(t)?.[3] ?? null));
       },
     },
     xAxis: { type: 'category', data: days.map((t) => dateFmt.format(t)), axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: { ...AXIS_TEXT, hideOverlap: true } },
@@ -253,7 +253,7 @@ export function renderWeek() {
       ...TIP,
       trigger: 'item',
       formatter: ({ value: [hour, row] }) =>
-        serversTip(`${dayName(order[row])}, ${hourLabel(hour)} to ${hourLabel(hour + 1)}`, 'average', everyone.map((week) => week[order[row] * 24 + hour]), true),
+        serversTip(`${dayName(order[row])}, ${hourLabel(hour)} to ${hourLabel(hour + 1)}`, 'average', everyone.map((week) => week[order[row] * 24 + hour]), { together: true }),
     },
     xAxis: {
       type: 'category',
@@ -403,7 +403,7 @@ export function renderHours() {
         axisPointer: BAND_POINTER,
         formatter: (params) => {
           const hour = params[0]?.dataIndex ?? 0;
-          return serversTip(`${hourLabel(hour)} to ${hourLabel(hour + 1)}`, 'average', perServer.map((each) => each[hour].average), true);
+          return serversTip(`${hourLabel(hour)} to ${hourLabel(hour + 1)}`, 'average', perServer.map((each) => each[hour].average), { together: true });
         },
       },
       xAxis: {

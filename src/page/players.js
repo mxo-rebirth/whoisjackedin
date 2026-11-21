@@ -35,6 +35,8 @@ export function renderLegend() {
 }
 
 export const PLAYERS_GRID = { left: 40, right: 16, top: 14, bottom: 84 };
+// Pixels kept above a peak's dot for its number.
+const PEAK_LABEL_PX = 18;
 
 export const sliderLook = () => ({
   type: 'slider',
@@ -168,8 +170,7 @@ export function playersTip(t) {
     `${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`,
     'average',
     stats.servers.map((server, i) => (hiddenServers.has(server.id) ? undefined : step.mean[i])),
-    true,
-    down.map((server) => `${server.name} down`),
+    { together: true, notes: down.map((server) => `${server.name} down`), peaks: step.peak },
   );
 }
 
@@ -263,12 +264,14 @@ function scaleOf(chart, shown, view) {
   const sumOf = (step) => shown.reduce((sum, i) => sum + (step.mean[i] ?? 0), 0);
   // The "together" line needs room too, which squeezes the servers' lines.
   const topOf = (step) => (stacked || together ? sumOf(step) : Math.max(0, ...shown.map((i) => step.mean[i] ?? 0)));
-  const peak = Math.max(4, ...steps.filter((step) => step.end > view.from && step.start < view.to).map(topOf));
+  const plotHeight = Math.max(60, chart.getHeight() - PLAYERS_GRID.top - PLAYERS_GRID.bottom);
+  const highest = Math.max(4, ...steps.filter((step) => step.end > view.from && step.start < view.to).map(topOf));
+  // The lines view keeps room above the highest line for a peak's number.
+  const peak = stacked ? highest : highest / (1 - PEAK_LABEL_PX / plotHeight);
   const tick = niceStep(peak / 4, true);
   const yMax = Math.ceil(peak / tick) * tick;
   const ticks = Array.from({ length: Math.round(yMax / tick) + 1 }, (_, i) => i * tick);
   // A few pixels of room above and below, so a line on the edge is not cut.
-  const plotHeight = Math.max(60, chart.getHeight() - PLAYERS_GRID.top - PLAYERS_GRID.bottom);
   const pixel = yMax / (plotHeight - 10);
   // Lines that sit on the same value are nudged a couple of pixels apart so each stays visible.
   const nudge = (k) => (stacked ? 0 : (k - (shown.length - 1) / 2) * 2 * pixel);
@@ -347,7 +350,40 @@ function liveDots(servers, shown, tracks) {
   return live;
 }
 
-function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, to }) {
+/**
+ * Each shown server's highest moment in the part on show, where it had anyone on. A peak above the scale sits at
+ * its top edge, marked as above. Servers that peak at the same moment with the same count share one number.
+ */
+function peaksOf(shown, view, { from, yMax, pixel, nudge }) {
+  const xOf = (step) => (Math.max(step.start, from) + step.end) / 2;
+  const inView = steps.filter((step) => xOf(step) >= view.from && xOf(step) <= view.to);
+  const ceiling = yMax - PEAK_LABEL_PX * pixel;
+  const marks = shown.map((i, k) => {
+    const best = inView.reduce((top, step) => ((step.peak[i] ?? 0) > (top?.peak[i] ?? 0) ? step : top), null);
+    if ((best?.peak[i] ?? 0) <= 0) return null;
+    const value = best.peak[i];
+    return { x: xOf(best), y: Math.min(value, ceiling) + nudge(k), value, above: value > yMax };
+  });
+  return marks.map((mark, k) => mark && { ...mark, labelled: !marks.slice(0, k).some((other) => other?.x === mark.x && other.value === mark.value) });
+}
+
+/** A dot with the number at a server's peak, since the line shows averages and would hide it. */
+function peakMark(peak, color) {
+  return {
+    silent: true,
+    animation: false,
+    // Above the dots that mark where each line is now.
+    zlevel: 1,
+    z: 13,
+    symbol: 'circle',
+    symbolSize: 7,
+    itemStyle: { color, borderColor: INK.surface, borderWidth: 1.5 },
+    label: { show: Boolean(peak?.labelled), position: 'top', distance: 4, color: INK.text, fontFamily: MONO, fontSize: 11, formatter: () => (peak.above ? `↑${peak.value}` : String(peak.value)) },
+    data: peak ? [{ coord: [peak.x, peak.y], value: peak.value }] : [],
+  };
+}
+
+function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, peaks, from, to }) {
   return [
     // Never drawn. It gives the strip under the chart its shape.
     { id: 'total', type: 'line', data: totals, symbol: 'none', silent: true, animation: false, lineStyle: { opacity: 0 }, tooltip: { show: false } },
@@ -388,6 +424,7 @@ function seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, 
           ? { opacity: 1, color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: mix(color, INK.surface, 0.42) }, { offset: 1, color: mix(color, INK.surface, 0.14) }] } }
           : { opacity: 0 },
         emphasis: { lineStyle: { width: stacked ? 1.5 : 2 } },
+        markPoint: peakMark(peaks[k], color),
         // Pointing at an outage, banded or dotted, adds a line like "MxO Revived down" to the hover box.
         markArea: {
           silent: true,
@@ -463,7 +500,8 @@ export function renderPlayers() {
   const { tracks, totals } = tracksOf(shown, from, to, nudge);
   const { banded, dotted } = outageLines(servers, shown, tracks, { from, to, nudge });
   const live = liveDots(servers, shown, tracks);
-  const series = seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, to });
+  const peaks = stacked ? shown.map(() => null) : peaksOf(shown, view, { from, yMax, pixel, nudge });
+  const series = seriesOf(servers, shown, { tracks, totals, banded, dotted, live, peaks, from, to });
 
   const zoomBase = { filterMode: 'none', minValueSpan: 2 * bucketMs, ...(fresh ? { start: 0, end: 100 } : {}) };
   chart.setOption(
