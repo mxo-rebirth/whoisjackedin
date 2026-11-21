@@ -34,3 +34,14 @@ test('a full day stops counting', async () => {
   assert.equal(await visit({ ip: '198.51.100.4', now: morning }), true, 'the visit that fills the day is still saved');
   assert.equal(await visit({ ip: '198.51.100.5', now: morning + 60_000 }), false);
 });
+
+test('a visit keeps only the short browser and system names, never the user agent', async () => {
+  const { mget } = await import('../lib/store.js');
+  const { visitsKey } = await import('../lib/keys.js');
+  const agent = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0 Mobile Safari/537.36';
+  assert.equal(await visit({ ip: '198.51.100.9', agent, now: at(300) }), true);
+  const [text] = await mget([visitsKey(new Date(at(300)).toISOString().slice(0, 10))]);
+  const line = text.trim().split('\n').at(-1);
+  assert.match(line, /;ca$/);
+  assert.ok(!line.includes('Mozilla'));
+});

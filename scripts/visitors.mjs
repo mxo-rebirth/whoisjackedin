@@ -23,3 +23,5 @@ for (const day of data.perDay.filter((d) => d.visits)) console.log(`${day.day}  
 console.log(`\nCountries: ${list(data.countries)}`);
 console.log(`Came from: ${list(data.referrers)}`);
 console.log(`Devices:   ${list(data.devices)}`);
+console.log(`Browsers:  ${list(data.browsers ?? [])}`);
+console.log(`Systems:   ${list(data.systems ?? [])}`);

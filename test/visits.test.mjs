@@ -36,3 +36,21 @@ test('finished days keep their totals, and older days are read from them', async
   assert.deepEqual(summary.perDay.map((d) => d.visits), [3, 3, 3]);
   assert.deepEqual(summary.countries, [['DE', 6], ['GB', 3]]);
 });
+
+test('browsers and systems are added up, and lines from before they were noted count as unknown', () => {
+  const totals = dayTotals(`${lines}12:00;PL;m;;cccc;ca\n12:30;PL;d;;dddd;fl\n`);
+  assert.deepEqual(totals.browsers, { '(unknown)': 3, Chrome: 1, Firefox: 1 });
+  assert.deepEqual(totals.systems, { '(unknown)': 3, Android: 1, Linux: 1 });
+});
+
+test('over long ranges each list of browsers and systems adds up to the visits, older days as unknown', async () => {
+  const { dayTotalsKey } = await import('../lib/keys.js');
+  const older = dayOf(now - 120 * DAY);
+  // Totals saved before browsers and systems were noted have neither.
+  await write([{ set: [dayTotalsKey(older), JSON.stringify({ visits: 4, visitors: 3, countries: {}, devices: {}, referrers: {}, hours: Array(24).fill(0) })] }]);
+  const summary = await visitSummary(200, now);
+  const sum = (pairs) => pairs.reduce((total, [, n]) => total + n, 0);
+  assert.equal(sum(summary.browsers), summary.visits);
+  assert.equal(sum(summary.systems), summary.visits);
+  assert.ok(summary.browsers.some(([name, n]) => name === '(unknown)' && n >= 4));
+});
