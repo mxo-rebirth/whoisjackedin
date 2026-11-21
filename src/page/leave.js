@@ -11,7 +11,7 @@ export function askFirst(event) {
   if (warned || !leave?.showModal || leave.open) return;
   const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
   // The project's own repos are not one of the servers' sites, so they need no word of care.
-  if (!anchor || anchor.id === 'leave-go' || anchor.hasAttribute('data-own')) return;
+  if (!anchor || anchor.id === 'leave-go' || Object.hasOwn(anchor.dataset, 'own')) return;
   let url;
   try {
     url = new URL(anchor.href);

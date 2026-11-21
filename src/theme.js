@@ -7,6 +7,7 @@
     theme = localStorage.getItem('theme');
     accent = localStorage.getItem('accent');
   } catch {}
-  document.documentElement.dataset.theme = theme === 'light' || theme === 'dark' ? theme : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  const device = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme === 'light' || theme === 'dark' ? theme : device;
   if (accent === 'blue') document.documentElement.dataset.accent = 'blue';
 })();

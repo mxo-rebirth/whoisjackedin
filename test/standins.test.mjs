@@ -1,21 +1,14 @@
 // Stand-in readings: cleaned when an outage is confirmed, and taken out of a day already saved.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
+import { MINUTE, roundOf, up, useTempStore } from './support.mjs';
 
-const dir = await mkdtemp(path.join(tmpdir(), 'mxo-repair-'));
-process.env.MXO_DATA_DIR = dir;
-delete process.env.KV_REST_API_URL;
+await useTempStore('standins');
 const { applySample, cleanStandIns, newState } = await import('../lib/sampler.js');
 const { SERVERS } = await import('../lib/sources.js');
-after(() => rm(dir, { recursive: true, force: true }));
 
-const MINUTE = 60_000;
-const up = (players) => ({ ok: true, online: true, players, checkedAt: null, details: [] });
 const silent = (error = 'timeout') => ({ ok: false, error });
-const round = (first, second = up(1)) => SERVERS.map((_, i) => (i === 0 ? first : i === 1 ? second : up(1)));
+const round = roundOf(SERVERS);
 const [first] = SERVERS;
 
 test('cleanStandIns replaces only online readings inside the window', () => {

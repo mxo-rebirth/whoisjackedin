@@ -44,7 +44,10 @@ if (box && phone && !installed && !quiet) {
     try {
       await choice.prompt();
       const { outcome } = await choice.userChoice;
-      if (outcome === 'accepted') return (box.hidden = true);
+      if (outcome === 'accepted') {
+        box.hidden = true;
+        return;
+      }
     } catch {}
     later();
   });

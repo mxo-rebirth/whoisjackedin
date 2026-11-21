@@ -22,7 +22,8 @@ export const SERIES = {};
 /** A server's color: its tone, read from the theme once and kept until the theme changes. */
 export const colorOf = (id) => {
   const tone = stats?.servers.find((server) => server.id === id)?.tone ?? '--muted';
-  return (SERIES[tone] ??= token(tone));
+  SERIES[tone] ??= token(tone);
+  return SERIES[tone];
 };
 
 export function key(id) {
@@ -37,12 +38,12 @@ export const MONO = token('--mono');
 
 export const stillPage = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export const channels = (hex) => [0, 1, 2].map((i) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16));
+export const channels = (hex) => [0, 1, 2].map((i) => Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16));
+
 /** A see-through version of a hex color. */
-
 export const fade = (hex, alpha) => `rgba(${channels(hex).join(', ')}, ${alpha})`;
-/** A solid color between two hex colors. A share of 1 is all of the first. */
 
+/** A solid color between two hex colors. A share of 1 is all of the first. */
 export const mix = (hex, other, share) => {
   const b = channels(other);
   return `rgb(${channels(hex)
@@ -74,9 +75,8 @@ export const TIP = {
 export const BAND_POINTER = { type: 'shadow', shadowStyle: {} };
 
 /** Reads the current theme's colors into the objects the charts use. */
-
 export function paint() {
-  for (const tone of Object.keys(SERIES)) delete SERIES[tone];
+  Object.keys(SERIES).forEach((tone) => delete SERIES[tone]);
   Object.assign(INK, {
     text: token('--ink'),
     soft: token('--ink-2'),
@@ -111,16 +111,17 @@ export function chartIn(node) {
 }
 
 /** The box shown on hover: when it was, what the numbers are, then one line per row as { id, name, value }. */
-
 export function tipBox(when, what, rows, notes = []) {
   const box = html('div');
   box.append(html('div', 'tip-when', when), html('div', 'tip-what', what));
-  for (const note of notes) box.append(html('div', 'tip-note', note));
-  for (const row of rows) {
-    const line = html('div', row.sum ? 'tip-row sum' : 'tip-row');
-    line.append(row.id ? key(row.id) : html('span'), html('span', 'name', row.name ?? ''), html('strong', '', row.value));
-    box.append(line);
-  }
+  box.append(
+    ...notes.map((note) => html('div', 'tip-note', note)),
+    ...rows.map((row) => {
+      const line = html('div', row.sum ? 'tip-row sum' : 'tip-row');
+      line.append(row.id ? key(row.id) : html('span'), html('span', 'name', row.name ?? ''), html('strong', '', row.value));
+      return line;
+    }),
+  );
   return box;
 }
 
@@ -129,34 +130,32 @@ export function tipBox(when, what, rows, notes = []) {
  * undefined to leave the server out. `together` adds a sum row, which only suits averages: peaks
  * happen at different moments, so they cannot be added up.
  */
-
 export function serversTip(when, what, values, together, notes) {
   let sum = 0;
   let exact = 0;
   let known = 0;
   const rows = [];
-  inViewOrder().forEach(([server, i]) => {
-    if (values[i] === undefined) return;
-    if (values[i] !== null) {
-      // The whole numbers shown are added up, so the rows always add up to the "together" row.
-      sum += Math.round(values[i]);
-      exact += values[i];
-      known += 1;
-    }
-    rows.push({ id: server.id, name: server.name, value: values[i] === null ? '–' : whole(values[i]) });
-  });
+  inViewOrder()
+    .filter(([, i]) => values[i] !== undefined)
+    .forEach(([server, i]) => {
+      if (values[i] !== null) {
+        // The whole numbers shown are added up, so the rows always add up to the "together" row.
+        sum += Math.round(values[i]);
+        exact += values[i];
+        known += 1;
+      }
+      rows.push({ id: server.id, name: server.name, value: values[i] === null ? '–' : whole(values[i]) });
+    });
   if (together && known && rows.length > 1) rows.push({ name: 'together', value: sum === 0 && exact > 0 ? '<1' : String(sum), sum: true });
   return tipBox(when, what, rows, notes);
 }
 
 /** Shows a chart's hover box at one of its x values, as if the pointer were there. */
-
 export function showTipAt(chart, value) {
   chart.dispatchAction({ type: 'showTip', x: chart.convertToPixel({ xAxisIndex: 0 }, value), y: chart.getHeight() / 3 });
 }
 
 /** Left and right arrow keys step through a chart's values, for readers without a mouse. */
-
 export function arrowKeys(node, count, show) {
   let index = null;
   node.addEventListener('keydown', (event) => {
@@ -174,10 +173,16 @@ export function arrowKeys(node, count, show) {
   });
 }
 
-/** Uptime as a share of 1, colored like a status light: operational, partial outage or major outage. */
+/** How a share of time online reads, like a status light. */
+export function uptimeLevel(share) {
+  if (share >= 0.995) return { tone: 'good', words: 'operational' };
+  if (share >= 0.95) return { tone: 'warning', words: 'partial outage' };
+  return { tone: 'critical', words: 'major outage' };
+}
 
+/** Uptime as a share of 1, colored like a status light. */
 export function uptimeMark(share) {
-  return html('span', `uptime ${share >= 0.995 ? 'good' : share >= 0.95 ? 'warning' : 'critical'}`, percent(share));
+  return html('span', `uptime ${uptimeLevel(share).tone}`, percent(share));
 }
 
 export function rowHead(server) {
@@ -201,7 +206,6 @@ export function uptimeCell(share, note) {
 }
 
 /** A column heading for one server: its color mark and its name. */
-
 export function serverHead(server) {
   const th = headCell('');
   th.append(key(server.id), ` ${server.name}`);
@@ -212,19 +216,20 @@ export function serverHead(server) {
  * A table row with one number per server. Each number sits on a bar in that server's color,
  * as long as the number is big compared with `most`.
  */
-
 export function serverRow(label, values, most) {
   const row = html('tr');
   row.append(html('td', '', label));
-  inViewOrder().forEach(([server, i]) => {
-    const value = values[i];
-    const td = html('td', value === null ? 'note' : 'bar', value === null ? 'No data' : whole(value));
-    if (value !== null) {
-      td.style.setProperty('--c', colorOf(server.id));
-      td.style.setProperty('--fill', `${Math.round((value / most) * 100)}%`);
-    }
-    row.append(td);
-  });
+  row.append(
+    ...inViewOrder().map(([server, i]) => {
+      const value = values[i];
+      const td = html('td', value === null ? 'note' : 'bar', value === null ? 'No data' : whole(value));
+      if (value !== null) {
+        td.style.setProperty('--c', colorOf(server.id));
+        td.style.setProperty('--fill', `${Math.round((value / most) * 100)}%`);
+      }
+      return td;
+    }),
+  );
   return row;
 }
 

@@ -13,7 +13,6 @@ export let stacked = false;
 export const legendValues = new Map(); // server id -> the number shown next to its name
 
 /** The legend is both a switch (click to hide or show a server) and the readout for the chart. */
-
 export function renderLegend() {
   legendValues.clear();
   $('players-legend').replaceChildren(
@@ -70,26 +69,23 @@ export let steps = []; // what the chart is drawing, see joinSteps
 export let stepMs = 0;
 
 export const isZoomed = () => zoom.start > 0.01 || zoom.end < 99.99;
-/** The stretch of time the chart covers: the loaded range, starting where the data starts. */
 
+/** The stretch of time the chart covers: the loaded range, starting where the data starts. */
 export function chartSpan() {
   const { from, to, points } = stats.history;
   return { from: points.length ? Math.max(from, points[0][0]) : from, to };
 }
 
 /** The period the chart is zoomed to. */
-
 export function shownWindow() {
   const { from, to } = chartSpan();
   return { from: from + ((to - from) * zoom.start) / 100, to: from + ((to - from) * zoom.end) / 100 };
 }
 
 /**
- * Joins the saved steps into wider ones, so the chart never draws more than about ninety points.
- * Zooming in brings the detail back. Each step is { start, end, mean, peak }, one entry per server,
- * null where nothing is known.
+ * Joins the saved steps so the chart draws about ninety points at most. Zooming in brings the detail back.
+ * Each step is { start, end, mean, peak }, with one entry per server, null where nothing is known.
  */
-
 export function joinSteps() {
   const { bucketMs, points, means, to } = stats.history;
   const view = shownWindow();
@@ -115,7 +111,9 @@ export function joinSteps() {
       step.peak[i] = Math.max(step.peak[i] ?? 0, peak);
     });
   });
-  for (const step of joined) step.mean = step.sum.map((sum, i) => (step.count[i] ? sum / step.count[i] : null));
+  joined.forEach((step) => {
+    step.mean = step.sum.map((sum, i) => (step.count[i] ? sum / step.count[i] : null));
+  });
   return { joined, width };
 }
 
@@ -124,7 +122,6 @@ export function resetZoom() {
 }
 
 /** A length of time in words, for "averaged over ...". */
-
 export function lengthWords(ms) {
   const minutes = Math.round(ms / 60000);
   if (minutes < 60) return `${minutes} minutes`;
@@ -133,7 +130,6 @@ export function lengthWords(ms) {
 }
 
 /** The line above the chart: which period is on show, and how fine the steps are. */
-
 export function renderPlayersHead() {
   const { range: name, bucketMs, from } = stats.history;
   const view = shownWindow();
@@ -154,17 +150,12 @@ export function timeLabel(value) {
 }
 
 /** The numbers beside the names in the legend: the count on each server right now. */
-
 export function renderReadout() {
-  let sum = 0;
-  let known = 0;
-  for (const server of stats.servers) {
-    const value = statusOf(server.now).counted ? server.now.players : null;
-    legendValues.get(server.id)?.replaceChildren(value === null ? '–' : String(value));
-    if (value === null || hiddenServers.has(server.id)) continue;
-    sum += value;
-    known += 1;
-  }
+  const values = stats.servers.map((server) => (statusOf(server.now).counted ? server.now.players : null));
+  stats.servers.forEach((server, i) => legendValues.get(server.id)?.replaceChildren(values[i] === null ? '–' : String(values[i])));
+  const counted = values.filter((value, i) => value !== null && !hiddenServers.has(stats.servers[i].id));
+  const sum = counted.reduce((total, value) => total + value, 0);
+  const known = counted.length;
   $('players-readout').textContent = `right now: ${known ? `${sum} together` : 'no data'}`;
 }
 
@@ -183,7 +174,6 @@ export function playersTip(t) {
 }
 
 /** Zoom by dragging across the chart. Touch is left alone so the page can still scroll. */
-
 export function wirePlayers(chart, node) {
   chart.on('datazoom', (event) => {
     const { start, end } = event.batch?.[0] ?? event;
@@ -258,9 +248,9 @@ function syncControls() {
   renderLegend();
   renderReadout();
   renderPlayersHead();
-  for (const button of document.querySelectorAll('[data-mode]')) {
-    button.setAttribute('aria-pressed', String((button.dataset.mode === 'stacked') === stacked));
-  }
+  document.querySelectorAll('[data-mode]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(stacked ? button.dataset.mode === 'stacked' : button.dataset.mode !== 'stacked'));
+  });
   // The stacked view already shows the total as its top edge.
   $('together-switch-box').hidden = stacked;
   $('together-switch').setAttribute('aria-pressed', String(together));
@@ -290,7 +280,7 @@ function tracksOf(shown, from, to, nudge) {
   // One point per joined step, in the middle of it.
   const tracks = shown.map(() => []);
   const totals = [[from, null]];
-  for (const step of steps) {
+  steps.forEach((step) => {
     const x = (Math.max(step.start, from) + step.end) / 2;
     let sum = 0;
     let known = false;
@@ -306,30 +296,29 @@ function tracksOf(shown, from, to, nudge) {
       tracks[k].push([x, stacked ? sum : value + nudge(k)]);
     });
     totals.push([x, known ? sum : null]);
-  }
+  });
   totals.push([to, null]);
   return { tracks, totals };
 }
 
 /** Outages: bands in the stacked view, dotted stretches in the lines view. Reshapes `tracks` around them. */
-function outageLines(servers, shown, tracks, from, to, nudge) {
-  // In the lines view an outage is drawn dotted from its exact start to its exact end: the solid line stops at
-  // the edges and a dotted one carries on, along zero when the server said it was down, or as a straight bridge
-  // when its feed gave no answer. The stacked view has no dotted lines, so it marks outages with bands.
+function outageLines(servers, shown, tracks, { from, to, nudge }) {
+  // A dotted stretch runs from the outage's exact start to its exact end: along zero when the server said it was
+  // down, as a straight bridge when its feed gave no answer.
   const banded = shown.map((i) => (stacked ? servers[i].allTime.outages.filter((o) => o.to > from && o.from < to) : []));
   const dotted = shown.map((i, k) => {
     if (stacked) return [];
     const outages = servers[i].allTime.outages
       .filter((o) => o.to > from && o.from < to)
       .map((o) => ({ ...o, from: Math.max(o.from, from), to: Math.min(o.to, to) }))
-      .sort((a, b) => a.from - b.from);
+      .toSorted((a, b) => a.from - b.from);
     if (!outages.length) return [];
     const known = tracks[k].filter(([, y]) => y !== null);
     const inside = (x) => outages.some((o) => x >= o.from && x <= o.to);
     const points = [];
     const solid = tracks[k].filter(([x]) => !inside(x));
-    for (const o of outages) {
-      const before = known.filter(([x]) => x < o.from && !inside(x)).at(-1)?.[1] ?? null;
+    outages.forEach((o) => {
+      const before = known.findLast(([x]) => x < o.from && !inside(x))?.[1] ?? null;
       const after = known.find(([x]) => x > o.to && !inside(x))?.[1] ?? null;
       const start = before ?? after ?? nudge(k);
       const end = after ?? (o.kind === 'offline' ? nudge(k) : start);
@@ -339,8 +328,8 @@ function outageLines(servers, shown, tracks, from, to, nudge) {
       const ground = nudge(k);
       const path = o.kind === 'offline' ? [[o.from, start], [o.from, ground], [o.to, ground], [o.to, end]] : [[o.from, start], [o.to, end]];
       points.push(...path, [o.to + 1, null]);
-    }
-    tracks[k] = solid.sort((a, b) => a[0] - b[0]);
+    });
+    tracks[k] = solid.toSorted((a, b) => a[0] - b[0]);
     return points;
   });
   return { banded, dotted };
@@ -348,7 +337,6 @@ function outageLines(servers, shown, tracks, from, to, nudge) {
 
 /** The dots that mark where each line is now, when the view reaches the present. */
 function liveDots(servers, shown, tracks) {
-  // A dot marks where each line is now.
   const live = [];
   if (!stacked && zoom.end > 99.9) {
     shown.forEach((i, k) => {
@@ -445,8 +433,7 @@ function renderPlayersTable() {
   $('players-head').replaceChildren(headCell('Time'), ...serversInView().map(serverHead));
   $('players-rows').replaceChildren(
     ...steps
-      .slice()
-      .reverse()
+      .toReversed()
       .map((step) => serverRow(`${dayTimeFmt.format(step.start)} to ${timeFmt.format(step.end)}`, step.mean, most)),
   );
 }
@@ -474,7 +461,7 @@ export function renderPlayers() {
 
   const { yMax, ticks, pixel, nudge } = scaleOf(chart, shown, view);
   const { tracks, totals } = tracksOf(shown, from, to, nudge);
-  const { banded, dotted } = outageLines(servers, shown, tracks, from, to, nudge);
+  const { banded, dotted } = outageLines(servers, shown, tracks, { from, to, nudge });
   const live = liveDots(servers, shown, tracks);
   const series = seriesOf(servers, shown, { tracks, totals, banded, dotted, live, from, to });
 
@@ -523,11 +510,11 @@ $('together-switch').addEventListener('click', () => {
   renderPlayers();
 });
 
-for (const button of document.querySelectorAll('[data-mode]')) {
+document.querySelectorAll('[data-mode]').forEach((button) => {
   button.addEventListener('click', () => {
     stacked = button.dataset.mode === 'stacked';
     renderPlayers();
   });
-}
+});
 
 $('zoom-reset').addEventListener('click', resetZoom);

@@ -10,7 +10,6 @@ export { statusOf };
 
 
 /** A small line of one server's player count over the selected range. */
-
 export function sparkline(server, column) {
   const svg = el('svg', { class: 'spark', viewBox: '0 0 190 44', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
   const { from, to, bucketMs, points } = stats.history;
@@ -63,10 +62,19 @@ export function starButton(server) {
     justStarred = on ? null : server.id;
     document.dispatchEvent(new Event('mxo:favourite'));
     justStarred = null;
-    document.querySelector(`#${where} .star[data-server="${server.id}"]`)?.focus({ preventScroll: true });
+    document.querySelector(`#${where} .star[data-server="${CSS.escape(server.id)}"]`)?.focus({ preventScroll: true });
   });
   return star;
 }
+
+/** The line under a server's count. */
+function unitOf(known, players, live) {
+  if (!known) return 'no signal yet';
+  if (!live) return 'last known count';
+  return `${players === 1 ? 'operative' : 'operatives'} jacked in`;
+}
+
+const agoOrBlank = (t) => (t ? ago(t) : '');
 
 export function serverCard(server, column) {
   const card = html('div', 'card server');
@@ -78,7 +86,6 @@ export function serverCard(server, column) {
   const badge = html('span', 'status');
   badge.append(html('span', `led ${status.led}`), status.text);
   head.dataset.server = server.id;
-  // Status, name and world, stacked.
   const titles = html('div', 'server-titles');
   titles.append(badge, link(server.name, server.site));
   if (server.about?.glance?.world) titles.append(html('div', 'world', `World ${server.about.glance.world}`));
@@ -89,32 +96,44 @@ export function serverCard(server, column) {
   const known = now && now.players !== undefined;
   count.append(html('div', 'tile-value', known ? String(now.players) : '–'));
   const live = status.led === 'good' || status.led === 'critical';
-  count.append(html('div', 'unit', !known ? 'no signal yet' : live ? `${now.players === 1 ? 'operative' : 'operatives'} jacked in` : 'last known count'));
+  count.append(html('div', 'unit', unitOf(known, now?.players, live)));
   body.append(count);
   if (stats.storage && stats.history.points.length > 1) body.append(sparkline(server, column));
 
-  const lines = [];
+  const lines = [statusNote(server, now, known)].filter(Boolean);
+  card.append(head, body, peaksOf(server), ...lines.map((line) => html('div', 'note', line)));
+  return card;
+}
+
+/** The note under a card: a doubtful answer, a feed that stopped answering, or the latest details. */
+function statusNote(server, now, known) {
   if (now?.unsure) {
     const since = now.unsureSince ? ` since ${timeFmt.format(now.unsureSince)}` : '';
-    lines.push(`Odd answer${since}${now.unsureDetail ? ` ("${now.unsureDetail}")` : ''}. Showing the last count while it is checked.`);
+    const detail = now.unsureDetail ? ` ("${now.unsureDetail}")` : '';
+    return `Odd answer${since}${detail}. Showing the last count while it is checked.`;
   }
-  else if (now && !now.ok && known) lines.push(`No answer since ${timeFmt.format(now.failedAt)}`);
-  else if (known) {
-    // The world is already under the name.
-    const parts = (now.details ?? []).filter((detail) => detail.label !== 'World' || !server.about?.glance?.world).map((detail) => `${detail.label}: ${detail.value}`);
-    parts.push(`checked ${timeFmt.format(now.checkedAt ? new Date(now.checkedAt) : now.at)}`);
-    lines.push(parts.join(' · '));
-  }
+  if (!known) return null;
+  if (!now.ok) return `No answer since ${timeFmt.format(now.failedAt)}`;
+  // The world is already under the name.
+  const parts = (now.details ?? []).filter((detail) => detail.label !== 'World' || !server.about?.glance?.world).map((detail) => `${detail.label}: ${detail.value}`);
+  parts.push(`checked ${timeFmt.format(now.checkedAt ? new Date(now.checkedAt) : now.at)}`);
+  return parts.join(' · ');
+}
+
+/** The 24-hour and all-time peaks, where known. */
+function peaksOf(server) {
   const peaks = html('div', 'peaks');
   const recordAt = server.allTime?.recordAt;
-  for (const [value, label] of [[server.allTime?.peak24, '24-hour peak'], [server.allTime?.recordPeak, `all-time peak${recordAt ? `, ${ago(recordAt)}` : ''}`]]) {
-    if (value === null || value === undefined) continue;
-    const item = html('span');
-    item.append(html('strong', '', String(value)), ` ${label}`);
-    peaks.append(item);
-  }
-  card.append(head, body, peaks, ...lines.map((line) => html('div', 'note', line)));
-  return card;
+  const when = recordAt ? `, ${ago(recordAt)}` : '';
+  const known = [[server.allTime?.peak24, '24-hour peak'], [server.allTime?.recordPeak, `all-time peak${when}`]].filter(([value]) => value != null);
+  peaks.append(
+    ...known.map(([value, label]) => {
+      const item = html('span');
+      item.append(html('strong', '', String(value)), ` ${label}`);
+      return item;
+    }),
+  );
+  return peaks;
 }
 
 export function renderNow() {
@@ -123,13 +142,15 @@ export function renderNow() {
   const total = counted.reduce((sum, server) => sum + server.now.players, 0);
   $('total-now').textContent = counted.length || !silent ? total : '–';
   $('total-note').textContent =
-    `${counted.length} of ${stats.servers.length} servers online` + (silent ? `, ${silent} with no signal` : '');
+    `${counted.length} of ${stats.servers.length} servers online${silent ? `, ${silent} with no signal` : ''}`;
   // The peaks count all servers together. A count that is higher right now is already the new peak.
   const peaks = stats.total ?? {};
   const beaten = counted.length && total > (peaks.recordPeak ?? -1);
-  $('total-peak24').textContent = peaks.peak24 == null && !counted.length ? '–' : Math.max(peaks.peak24 ?? 0, counted.length ? total : 0);
-  $('total-record').textContent = peaks.recordPeak == null && !counted.length ? '–' : Math.max(peaks.recordPeak ?? 0, counted.length ? total : 0);
-  $('total-record-when').textContent = beaten ? 'right now' : peaks.recordAt ? ago(peaks.recordAt) : '';
+  const liveTotal = counted.length ? total : null;
+  const withLive = (peak) => (peak == null && liveTotal === null ? '–' : Math.max(peak ?? 0, liveTotal ?? 0));
+  $('total-peak24').textContent = withLive(peaks.peak24);
+  $('total-record').textContent = withLive(peaks.recordPeak);
+  $('total-record-when').textContent = beaten ? 'right now' : agoOrBlank(peaks.recordAt);
 
   $('share').replaceChildren(
     ...counted
@@ -155,11 +176,10 @@ export function renderNow() {
 }
 
 /** A ranked list, best first. Equal values share a place. `full` is the value that fills the whole bar. */
-
 export function rankList(target, entries, format, full) {
   const known = entries
     .filter((entry) => entry.value !== null)
-    .sort((a, b) => b.value - a.value || a.server.name.localeCompare(b.server.name));
+    .toSorted((a, b) => b.value - a.value || a.server.name.localeCompare(b.server.name));
   const scale = full ?? Math.max(0, ...known.map((entry) => entry.value));
   target.replaceChildren(
     ...[...known, ...entries.filter((entry) => entry.value === null)].map((entry) => {

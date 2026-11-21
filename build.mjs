@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { SERVERS } from './lib/sources.js';
 import { escapeHtml } from './lib/html.js';
-import { iconPng } from './lib/icons.js';
+import { iconPng } from './lib/helpers/icons.js';
 import { manifest } from './lib/manifest.js';
 import { siteUrl } from './lib/site.js';
 
@@ -21,9 +21,8 @@ await mkdir(path.join(out, 'assets', 'icons'), { recursive: true });
 await cp(path.join(root, 'src', 'og.jpg'), path.join(out, 'assets', 'icons', 'og.jpg'));
 // The site as an app: icons drawn from the favicon, the manifest, and the service worker at the top level so it
 // covers the whole site.
-for (const [name, size, maskable] of [['app-192', 192, false], ['app-512', 512, false], ['app-maskable-512', 512, true], ['app-180', 180, true]]) {
-  await writeFile(path.join(out, 'assets', 'icons', `${name}.png`), iconPng(size, { maskable }));
-}
+const APP_ICONS = [['app-192', 192, false], ['app-512', 512, false], ['app-maskable-512', 512, true], ['app-180', 180, true]];
+await Promise.all(APP_ICONS.map(([name, size, maskable]) => writeFile(path.join(out, 'assets', 'icons', `${name}.png`), iconPng(size, { maskable }))));
 await writeFile(path.join(out, 'manifest.webmanifest'), JSON.stringify(manifest()));
 await writeFile(path.join(out, 'sw.js'), (await transform(await readFile(path.join(root, 'src', 'sw.js'), 'utf8'), { minify: true })).code);
 // The 3D characters are not part of the public page: no models, script or styles for them go into public/.
@@ -89,10 +88,11 @@ const about = SERVERS.filter((server) => server.about)
   })
   .join('');
 const site = siteUrl();
-const fill = (html) => html.replace(ABOUT_SLOT, `<section class="about" id="about">${about}</section>`).replaceAll('__SITE__', site);
+const fill = (html) => html.replace(ABOUT_SLOT, () => `<section class="about" id="about">${about}</section>`).replaceAll('__SITE__', () => site);
 
-const squeeze = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/\n\s*/g, '').replace(/>\s+</g, '><');
-const page = fill(squeeze(source.slice(0, open))) + `<style>${css}</style>` + fill(squeeze(source.slice(close + 8))).replace(SCRIPT_TAG, `<script defer src="/assets/${script}"></script>`);
+const squeeze = (html) => html.replaceAll(/<!--[\s\S]*?-->/g, '').replaceAll(/\n\s*/g, '').replaceAll(/>\s+</g, '><');
+const tail = fill(squeeze(source.slice(close + 8))).replace(SCRIPT_TAG, () => `<script defer src="/assets/${script}"></script>`);
+const page = `${fill(squeeze(source.slice(0, open)))}<style>${css}</style>${tail}`;
 // The page is written as page.html, not index.html: the address "/" is answered by api/page.js, which puts
 // the current numbers into it first.
 await writeFile(path.join(out, 'page.html'), page);

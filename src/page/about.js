@@ -33,65 +33,82 @@ export function renderAbout() {
     }),
   );
 
-  $('about').replaceChildren(
-    ...serversInView()
-      .filter((server) => server.about)
-      .map((server) => {
-        const about = server.about;
-        const card = html('div', 'card');
-        card.style.setProperty('--c', colorOf(server.id));
+  $('about').replaceChildren(...serversInView().filter((server) => server.about).map(aboutCard));
+}
 
-        // The same header as the cards at the top: portrait, then status, name and world.
-        const head = html('div', 'server-head');
-        const status = statusOf(server.now);
-        const badge = html('span', 'status');
-        badge.append(html('span', `led ${status.led}`), status.counted ? `${status.text} · ${server.now.players}` : status.text);
-        const titles = html('div', 'server-titles');
-        titles.append(badge, html('h3', '', server.name));
-        if (about.glance?.world) titles.append(html('div', 'world', `World ${about.glance.world}`));
-        head.dataset.server = server.id;
-        head.append(titles, starButton(server));
+function aboutCard(server) {
+  const about = server.about;
+  const card = html('div', 'card');
+  card.style.setProperty('--c', colorOf(server.id));
+  const list = html('dl');
+  list.append(...about.facts.flatMap((fact) => [html('dt', '', fact.label), html('dd', '', fact.value)]));
+  if (about.timeline) list.append(html('dt', '', 'Timeline'), timelineOf(about.timeline));
+  if (server.community) list.append(html('dt', '', 'Community'), communityOf(server.community));
+  const links = html('div', 'links');
+  links.append(...about.links.map((item) => link(item.label, item.url)));
+  card.append(aboutHead(server), chipsOf(about.glance), html('div', 'prose', about.summary), list, links);
+  return card;
+}
 
-        const chips = html('div', 'chips');
-        for (const [label, field] of [['Join', 'access'], ['PvP', 'pvp'], ['Since', 'since']]) {
-          if (!about.glance?.[field]) continue;
-          const chip = html('span', 'chip');
-          chip.append(html('span', 'chip-label', label), about.glance[field]);
-          chips.append(chip);
-        }
+/** The same header as the cards at the top: status, name and world, then the star. */
+function aboutHead(server) {
+  const head = html('div', 'server-head');
+  const status = statusOf(server.now);
+  const badge = html('span', 'status');
+  badge.append(html('span', `led ${status.led}`), status.counted ? `${status.text} · ${server.now.players}` : status.text);
+  const titles = html('div', 'server-titles');
+  titles.append(badge, html('h3', '', server.name));
+  if (server.about.glance?.world) titles.append(html('div', 'world', `World ${server.about.glance.world}`));
+  head.dataset.server = server.id;
+  head.append(titles, starButton(server));
+  return head;
+}
 
-        const list = html('dl');
-        for (const fact of about.facts) list.append(html('dt', '', fact.label), html('dd', '', fact.value));
-        if (about.timeline) {
-          const steps = html('ul', 'timeline');
-          for (const [when, what] of about.timeline) {
-            const step = html('li');
-            step.append(html('span', 'when', when), html('span', '', what));
-            steps.append(step);
-          }
-          const holder = html('dd');
-          holder.append(steps);
-          list.append(html('dt', '', 'Timeline'), holder);
-        }
-        const c = server.community;
-        if (c) {
-          const holder = html('dd', 'community');
-          if (c.members !== undefined) {
-            for (const [value, label] of [[c.members, 'members'], [c.online ?? 0, 'online now']]) {
-              const stat = html('span');
-              stat.append(html('strong', '', value.toLocaleString()), ` ${label}`);
-              holder.append(stat);
-            }
-          }
-          holder.append(html('span', 'note', c.shared ? `the shared fan Discord${c.name ? `, "${c.name}"` : ''}` : `its own Discord, opened ${monthYearFmt.format(new Date(c.opened))}`));
-          list.append(html('dt', '', 'Community'), holder);
-        }
-        const links = html('div', 'links');
-        links.append(...about.links.map((item) => link(item.label, item.url)));
-        card.append(head, chips, html('div', 'prose', about.summary), list, links);
-        return card;
-      }),
+function chipsOf(glance) {
+  const chips = html('div', 'chips');
+  const fields = [['Join', 'access'], ['PvP', 'pvp'], ['Since', 'since']].filter(([, field]) => glance?.[field]);
+  chips.append(
+    ...fields.map(([label, field]) => {
+      const chip = html('span', 'chip');
+      chip.append(html('span', 'chip-label', label), glance[field]);
+      return chip;
+    }),
   );
+  return chips;
+}
+
+function timelineOf(timeline) {
+  const steps = html('ul', 'timeline');
+  steps.append(
+    ...timeline.map(([when, what]) => {
+      const step = html('li');
+      step.append(html('span', 'when', when), html('span', '', what));
+      return step;
+    }),
+  );
+  const holder = html('dd');
+  holder.append(steps);
+  return holder;
+}
+
+function communityOf(community) {
+  const holder = html('dd', 'community');
+  const counts = community.members === undefined ? [] : [[community.members, 'members'], [community.online ?? 0, 'online now']];
+  holder.append(
+    ...counts.map(([value, label]) => {
+      const stat = html('span');
+      stat.append(html('strong', '', value.toLocaleString()), ` ${label}`);
+      return stat;
+    }),
+  );
+  holder.append(html('span', 'note', communityNote(community)));
+  return holder;
+}
+
+/** Which Discord the numbers are from. */
+function communityNote(community) {
+  if (!community.shared) return `its own Discord, opened ${monthYearFmt.format(new Date(community.opened))}`;
+  return `the shared fan Discord${community.name ? `, "${community.name}"` : ''}`;
 }
 
 export function renderFooter() {

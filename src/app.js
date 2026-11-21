@@ -16,7 +16,13 @@ import './page/install.js';
 function renderUpdated() {
   if (!readingAt) return;
   const seconds = Math.max(0, Math.round((Date.now() - readingAt) / 1000));
-  $('updated').textContent = seconds < 5 ? 'read just now' : seconds < 120 ? `read ${seconds} s ago` : `last read ${dayTimeFmt.format(readingAt)}`;
+  $('updated').textContent = readLabel(seconds);
+}
+
+function readLabel(seconds) {
+  if (seconds < 5) return 'read just now';
+  if (seconds < 120) return `read ${seconds} s ago`;
+  return `last read ${dayTimeFmt.format(readingAt)}`;
 }
 
 /**
@@ -79,7 +85,6 @@ function renderEverything() {
 }
 
 /** Shows the data saved from the last visit right away, while fresh data loads. */
-
 function showSaved() {
   try {
     const saved = JSON.parse(pref('last-stats'));
@@ -88,7 +93,7 @@ function showSaved() {
     setReadingAt(readingTimeOf(saved));
     setRange(saved.history.range);
     renderAll();
-  } catch (err) {
+  } catch {
     setStats(null);
     setReadingAt(null);
   }
@@ -161,9 +166,7 @@ async function load({ dim = false } = {}) {
 function selectRange(next, { dim = true } = {}) {
   setRange(next);
   setPref('range', next);
-  for (const button of document.querySelectorAll('.ranges button')) {
-    button.setAttribute('aria-pressed', String(button.dataset.range === range));
-  }
+  document.querySelectorAll('.ranges button').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.range === range)));
   const kept = freshAnswer(next);
   if (!kept) return load({ dim });
   // Already here and still what the site would send: shown at once, and fetched again when it runs out.
@@ -172,31 +175,30 @@ function selectRange(next, { dim = true } = {}) {
   scheduleLoad(kept.cachedAt);
 }
 
-for (const button of document.querySelectorAll('.ranges button')) {
+document.querySelectorAll('.ranges button').forEach((button) => {
   button.addEventListener('click', () => selectRange(button.dataset.range));
   // A pointer resting on a range, or keyboard focus, fetches it in the background, so the click usually finds it ready.
   const prefetch = () => freshAnswer(button.dataset.range) || fetchRange(button.dataset.range).catch(() => {});
   button.addEventListener('pointerenter', prefetch);
   button.addEventListener('focus', prefetch);
-}
+});
 
-for (const toggle of document.querySelectorAll('[data-table]')) {
+document.querySelectorAll('[data-table]').forEach((toggle) => {
   toggle.addEventListener('click', () => {
     const wrap = $(toggle.dataset.table);
     wrap.hidden = !wrap.hidden;
     toggle.textContent = wrap.hidden ? 'Show as table' : 'Hide table';
     toggle.setAttribute('aria-expanded', String(!wrap.hidden));
   });
-}
+});
 
-// The charts follow the width of the page.
 let lastWidth = 0;
 
 new ResizeObserver(([entry]) => {
   const width = Math.round(entry.contentRect.width);
   if (width === lastWidth || !stats?.storage) return;
   lastWidth = width;
-  for (const chart of charts.values()) chart.resize();
+  charts.forEach((chart) => chart.resize());
   renderPlayers();
   renderDaily();
   renderHours();

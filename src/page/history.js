@@ -3,7 +3,7 @@
 import { favourite, inViewOrder, serversInView, stats, todayKey } from './state.js';
 import { dateFmt, DAY, dayTimeFmt, downtime, duration, hourLabel, monthDayFmt, monthFmt, niceStep, percent, players, TZ_HOURS, weekdayFmt, whole } from './format.js';
 import { $, headCell, html, stateIcon, tableRow } from './dom.js';
-import { arrowKeys, AXIS_LINE, AXIS_TEXT, BAND_POINTER, cell, chartIn, charts, colorOf, fade, INK, key, mix, rowHead, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, uptimeCell } from './look.js';
+import { arrowKeys, AXIS_LINE, AXIS_TEXT, BAND_POINTER, cell, chartIn, charts, colorOf, fade, INK, key, mix, rowHead, serverHead, serverRow, serversTip, showTipAt, SPLIT_LINE, stillPage, TIP, uptimeCell, uptimeLevel } from './look.js';
 import { statusOf } from './cards.js';
 
 export let picked = null; // the server shown in the breakdown table and the weekly pattern
@@ -15,7 +15,6 @@ export let sortBy = { column: 'period', down: true };
 export let dailyCount = 0;
 
 /** Grouped bars: the most operatives each server had at once, day by day. */
-
 export function renderDaily() {
   const node = $('daily-chart');
   const isNew = !charts.has(node);
@@ -29,7 +28,7 @@ export function renderDaily() {
   const days = Array.from({ length: dailyCount }, (_, k) => today - (dailyCount - 1 - k) * DAY);
   const peak = Math.max(4, ...days.flatMap((t) => byDay.map((map) => map.get(t)?.[3] ?? 0)));
   const step = niceStep(peak / 3, true);
-  chart.setOption({
+  const option = {
     animationDuration: stillPage ? 0 : 600,
     grid: { left: 40, right: 12, top: 12, bottom: 26 },
     tooltip: {
@@ -53,8 +52,9 @@ export function renderDaily() {
       barMaxWidth: 22,
       itemStyle: { color: colorOf(server.id), borderRadius: [4, 4, 0, 0] },
     })),
-    // Drawn afresh each time: merged by id, the bars would keep their old order. There is no zoom here to lose.
-  }, { notMerge: true });
+  };
+  // Drawn afresh each time: merged by id, the bars would keep their old order. There is no zoom here to lose.
+  chart.setOption(option, { notMerge: true });
 }
 
 // The favourite is only where these views start: a server the visitor picked here is not replaced by a new star.
@@ -66,7 +66,6 @@ export function followFavourite() {
 }
 
 /** One switch for the two views that show a single server. */
-
 export function renderPicker() {
   const known = (id) => stats.servers.some((server) => server.id === id);
   if (!known(picked)) picked = known(favourite) ? favourite : stats.servers[0].id;
@@ -99,23 +98,15 @@ export const BREAKDOWN = [
 ];
 
 /** Adds day entries ([dayStart, answered, online, peak, sum]) up into one period. Null when there is nothing to add. */
-
 export function sumDays(days) {
-  let answered = 0;
-  let online = 0;
-  let peak = 0;
-  let sum = 0;
-  for (const day of days) {
-    answered += day[1];
-    online += day[2];
-    peak = Math.max(peak, day[3]);
-    sum += day[4];
-  }
+  const { answered, online, peak, sum } = days.reduce(
+    (total, day) => ({ answered: total.answered + day[1], online: total.online + day[2], peak: Math.max(total.peak, day[3]), sum: total.sum + day[4] }),
+    { answered: 0, online: 0, peak: 0, sum: 0 },
+  );
   return answered ? { peak, average: sum / answered, online: online / answered } : null;
 }
 
 /** One table row: a period's numbers, and how they changed from the period before it. */
-
 export function compare(label, period, now, before) {
   return {
     label,
@@ -130,31 +121,33 @@ export function compare(label, period, now, before) {
 }
 
 /** A change, with its sign and a color: up or down. */
-
 export function changeCell(value, digits, unit = '') {
   if (value === null) return html('td', 'note', '–');
   const shown = Number(value.toFixed(digits));
-  return html('td', shown > 0 ? 'up' : shown < 0 ? 'down' : '', `${shown > 0 ? '+' : shown < 0 ? '−' : ''}${Math.abs(shown).toFixed(digits)}${unit}`);
+  const [tone, sign] = toneOf(shown);
+  return html('td', tone, `${sign}${Math.abs(shown).toFixed(digits)}${unit}`);
+}
+
+function toneOf(shown) {
+  if (shown > 0) return ['up', '+'];
+  if (shown < 0) return ['down', '−'];
+  return ['', ''];
 }
 
 /** Peak, average and change for the picked server, by day or by month. Click a heading to sort. */
-
 export function renderBreakdown() {
   const server = stats.servers.find((item) => item.id === picked);
   const days = server.allTime.days;
   const today = todayKey();
   const byMonth = tableRows === 'month';
-  for (const button of document.querySelectorAll('[data-rows]')) button.setAttribute('aria-pressed', String(button.dataset.rows === tableRows));
+  const periodLabel = byMonth ? 'Month' : 'Day';
+  document.querySelectorAll('[data-rows]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.rows === tableRows)));
   $('breakdown-sub').textContent = `${server.name}, each ${byMonth ? 'month' : 'day'} compared with the one before`;
 
   let periods;
   if (byMonth) {
-    const months = new Map();
-    for (const day of days) {
-      const date = new Date(day[0]);
-      const start = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
-      months.set(start, [...(months.get(start) ?? []), day]);
-    }
+    const monthOf = (day) => Date.UTC(new Date(day[0]).getUTCFullYear(), new Date(day[0]).getUTCMonth(), 1);
+    const months = Map.groupBy(days, monthOf);
     const thisMonth = Date.UTC(new Date(today).getUTCFullYear(), new Date(today).getUTCMonth(), 1);
     periods = [...months].map(([start, list]) => ({ start, label: monthFmt.format(start) + (start === thisMonth ? ', so far' : ''), total: sumDays(list) }));
   } else {
@@ -180,7 +173,7 @@ export function renderBreakdown() {
     ...BREAKDOWN.map(([column, label]) => {
       const th = html('th');
       th.scope = 'col';
-      const button = html('button', 'sort', column === 'period' ? (byMonth ? 'Month' : 'Day') : label);
+      const button = html('button', 'sort', column === 'period' ? periodLabel : label);
       button.type = 'button';
       if (sortBy.column === column) {
         th.setAttribute('aria-sort', sortBy.down ? 'descending' : 'ascending');
@@ -220,16 +213,15 @@ export function renderBreakdown() {
   $('breakdown-rows').replaceChildren(...(body.length ? body : [tableRow('No data yet', '–', '–', '–', '–', '–', '–')]));
 }
 
-for (const button of document.querySelectorAll('[data-rows]')) {
+document.querySelectorAll('[data-rows]').forEach((button) => {
   button.addEventListener('click', () => {
     tableRows = button.dataset.rows;
     sortBy = { column: 'period', down: true };
     renderBreakdown();
   });
-}
+});
 
 /** Weekday by hour: when operatives are usually on, for the picked server. */
-
 export function renderWeek() {
   const server = stats.servers.find((item) => item.id === picked);
   const color = colorOf(server.id);
@@ -286,53 +278,61 @@ export function renderWeek() {
   });
   const filled = averages.filter((v) => v !== null).length;
   const best = averages.reduce((bestSlot, v, slot) => (v !== null && v > (averages[bestSlot] ?? 0) ? slot : bestSlot), -1);
-  node.setAttribute('aria-label', `Average operatives on ${server.name} by weekday and hour.` + (best < 0 ? '' : ` Busiest: ${dayName(Math.floor(best / 24))} around ${hourLabel(best % 24)}.`));
+  node.setAttribute('aria-label', `Average operatives on ${server.name} by weekday and hour.${best < 0 ? '' : ` Busiest: ${dayName(Math.floor(best / 24))} around ${hourLabel(best % 24)}.`}`);
   $('week-sub').textContent = `${server.name}, average operatives by weekday and hour`;
   $('week-note').textContent = filled < 168 ? `${filled} of 168 hours have data so far. It fills in over a week.` : '';
   $('week-key').style.setProperty('--c', color);
 }
 
+const UPTIME_DAYS = 90;
+
 export function renderUptime() {
   const today = todayKey();
-  $('uptime').replaceChildren(
-    ...serversInView().map((server) => {
-      const byDay = new Map(server.allTime.days.map(([t, answered, online]) => [t, { answered, online }]));
-      let answered = 0;
-      let online = 0;
-      // The share covers the days in the strip, so the label counts those, not every day loaded.
-      let counted = 0;
-      const strip = html('div', 'strip');
-      for (let i = 89; i >= 0; i--) {
-        const t = today - i * DAY;
-        const day = byDay.get(t);
-        const cellNode = html('i');
-        const label = dateFmt.format(t);
-        if (!day) {
-          cellNode.title = `${label}: no data`;
-        } else {
-          answered += day.answered;
-          online += day.online;
-          counted += 1;
-          const share = day.online / day.answered;
-          cellNode.className = share >= 0.995 ? 'good' : share >= 0.95 ? 'warning' : 'critical';
-          cellNode.title = `${label}: ${share >= 0.995 ? 'operational' : share >= 0.95 ? 'partial outage' : 'major outage'}, online ${percent(share)} of the time, ${downtime(day.answered, day.online)}`;
-        }
-        strip.append(cellNode);
-      }
-      const row = html('div', 'uptime-row');
-      const head = html('div', 'uptime-head');
-      const name = html('span', 'name');
-      name.append(key(server.id), server.name);
-      const total = html('span');
-      if (answered) total.append(html('strong', '', percent(online / answered)), html('span', 'note', ` over ${counted} ${counted === 1 ? 'day' : 'days'}`));
-      else total.append(html('span', 'note', 'no data yet'));
-      head.append(name, total);
-      strip.setAttribute('role', 'img');
-      strip.setAttribute('aria-label', answered ? `${server.name}: online ${percent(online / answered)} of the time over ${counted} ${counted === 1 ? 'day' : 'days'} of data` : `${server.name}: no data yet`);
-      row.append(head, strip);
-      return row;
-    }),
-  );
+  $('uptime').replaceChildren(...serversInView().map((server) => uptimeRow(server, today)));
+}
+
+/** One server's strip of days, with its share online over the days that have data. */
+function uptimeRow(server, today) {
+  const byDay = new Map(server.allTime.days.map(([t, answered, online]) => [t, { answered, online }]));
+  const days = Array.from({ length: UPTIME_DAYS }, (_, k) => today - (UPTIME_DAYS - 1 - k) * DAY);
+  const known = days.filter((t) => byDay.has(t)).map((t) => byDay.get(t));
+  const answered = known.reduce((sum, day) => sum + day.answered, 0);
+  const online = known.reduce((sum, day) => sum + day.online, 0);
+
+  const strip = html('div', 'strip');
+  strip.append(...days.map((t) => uptimeDay(t, byDay.get(t))));
+  strip.setAttribute('role', 'img');
+  const head = html('div', 'uptime-head');
+  const name = html('span', 'name');
+  name.append(key(server.id), server.name);
+  const total = html('span');
+  if (answered) {
+    const span = `${known.length} ${known.length === 1 ? 'day' : 'days'}`;
+    total.append(html('strong', '', percent(online / answered)), html('span', 'note', ` over ${span}`));
+    strip.setAttribute('aria-label', `${server.name}: online ${percent(online / answered)} of the time over ${span} of data`);
+  } else {
+    total.append(html('span', 'note', 'no data yet'));
+    strip.setAttribute('aria-label', `${server.name}: no data yet`);
+  }
+  head.append(name, total);
+  const row = html('div', 'uptime-row');
+  row.append(head, strip);
+  return row;
+}
+
+/** One day in the strip, colored like a status light. */
+function uptimeDay(t, day) {
+  const node = html('i');
+  const label = dateFmt.format(t);
+  if (!day) {
+    node.title = `${label}: no data`;
+    return node;
+  }
+  const share = day.online / day.answered;
+  const level = uptimeLevel(share);
+  node.className = level.tone;
+  node.title = `${label}: ${level.words}, online ${percent(share)} of the time, ${downtime(day.answered, day.online)}`;
+  return node;
 }
 
 export function renderRecords() {
@@ -352,7 +352,6 @@ export function renderRecords() {
 }
 
 /** Hourly totals come in UTC. This turns them into 24 local-time averages (null where there is no data). */
-
 export function localAverages(hoursUtc) {
   const slots = Array.from({ length: 24 }, () => [0, 0]);
   hoursUtc.forEach(([sum, n], utcHour) => {
@@ -367,7 +366,6 @@ export function localAverages(hoursUtc) {
 export const hourBoxes = new Map();
 
 /** One small chart per server, made the first time it is needed. */
-
 export function hourBox(server) {
   if (hourBoxes.has(server.id)) return hourBoxes.get(server.id);
   const root = html('div', 'mini');
@@ -432,10 +430,10 @@ export function renderHours() {
     const best = slots.reduce((bestHour, slot, hour) => (slot.average > (slots[bestHour]?.average ?? 0) ? hour : bestHour), -1);
     peakNote.textContent = best < 0 || covered < 24 ? '' : `busiest around ${hourLabel(best)}`;
   });
-
-  const mostAnyHour = Math.max(1, ...perServer.flatMap((slots) => slots.map((slot) => slot.average ?? 0)));
   // Made once, so they are moved into the order of the other views when the favourite changes.
   $('hours-charts').append(...serversInView().map((server) => hourBoxes.get(server.id).root));
+
+  const mostAnyHour = Math.max(1, ...perServer.flatMap((slots) => slots.map((slot) => slot.average ?? 0)));
   $('hours-head').replaceChildren(headCell('Hour'), ...serversInView().map(serverHead));
   $('hours-rows').replaceChildren(
     ...Array.from({ length: 24 }, (_, hour) =>
@@ -447,7 +445,7 @@ export function renderHours() {
 export function renderOutages() {
   const all = stats.servers
     .flatMap((server) => server.allTime.outages.map((outage) => ({ ...outage, server })))
-    .sort((a, b) => b.from - a.from)
+    .toSorted((a, b) => b.from - a.from)
     .slice(0, 12);
   if (!all.length) {
     const since = stats.since ? `None since ${monthDayFmt.format(stats.since)}.` : 'No data yet.';
@@ -472,12 +470,11 @@ export function renderOutages() {
 export const SHOW_GAPS = new URLSearchParams(location.search).has('gaps');
 
 /** Short gaps: a few checks in a row without a clear answer. Too short to be an outage, but the count stood still. */
-
 export function renderGaps() {
   const DAY = 86_400_000;
   $('gaps-block').hidden = !SHOW_GAPS;
   if (!SHOW_GAPS) return;
-  const all = stats.servers.flatMap((server) => (server.allTime.gaps ?? []).map((gap) => ({ ...gap, server }))).sort((a, b) => b.from - a.from);
+  const all = stats.servers.flatMap((server) => (server.allTime.gaps ?? []).map((gap) => ({ ...gap, server }))).toSorted((a, b) => b.from - a.from);
   if (!all.length) {
     $('gaps').replaceChildren(html('li', 'note', 'None recorded yet.'));
     return;

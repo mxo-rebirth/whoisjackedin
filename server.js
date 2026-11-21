@@ -3,6 +3,7 @@
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { text as readText } from 'node:stream/consumers';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -47,16 +48,13 @@ function hostStyle(req, res, url, body) {
 
 /** A POST body sent as JSON, as the host reads it. Anything else gives undefined. */
 async function readBody(req) {
-  if (req.method !== 'POST' || !String(req.headers['content-type']).startsWith('application/json')) return undefined;
-  let text = '';
-  for await (const chunk of req) {
-    text += chunk;
-    if (text.length > 10_000) return undefined;
-  }
+  if (req.method !== 'POST' || !String(req.headers['content-type']).startsWith('application/json')) return;
+  const text = await readText(req);
+  if (text.length > 10_000) return;
   try {
     return JSON.parse(text);
   } catch {
-    return undefined;
+    return;
   }
 }
 
@@ -71,23 +69,26 @@ async function functionFor(name) {
   return functions.get(name);
 }
 
+/** Answers an /api/ call with the function of that name, the way the host would. */
+async function answerFunction(name, req, res, url) {
+  // Visits are only counted on the real site. Here the call is answered and dropped.
+  if (name === 'hit') return void res.writeHead(204).end();
+  const handler = await functionFor(name);
+  if (!handler) return void res.writeHead(404).end();
+  // The functions ask for a Secure cookie only when the page came over https.
+  req.headers['x-forwarded-proto'] = 'http';
+  hostStyle(req, res, url, await readBody(req));
+  await handler(req, res);
+}
+
 const server = http.createServer(async (req, res) => {
   const asked = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
   const url = rewrite(config.rewrites, asked, cookiesOf(req.headers.cookie));
   // Like the host, every header rule that matches the address asked for applies.
-  for (const [key, value] of Object.entries(headersFor(config.headers, asked.pathname))) res.setHeader(key, value);
+  Object.entries(headersFor(config.headers, asked.pathname)).forEach(([key, value]) => res.setHeader(key, value));
   try {
     const name = /^\/api\/([^/]+)$/.exec(url.pathname)?.[1];
-    if (name) {
-      // Visits are only counted on the real site. Here the call is answered and dropped.
-      if (name === 'hit') return void res.writeHead(204).end();
-      const handler = await functionFor(name);
-      if (!handler) return void res.writeHead(404).end();
-      // The functions ask for a Secure cookie only when the page came over https.
-      req.headers['x-forwarded-proto'] = 'http';
-      hostStyle(req, res, url, await readBody(req));
-      return void (await handler(req, res));
-    }
+    if (name) return await answerFunction(name, req, res, url);
     // Everything else is a built file. A path that tries to leave public/ is not found.
     if (req.method !== 'GET' && req.method !== 'HEAD') return void res.writeHead(405, { allow: 'GET, HEAD' }).end();
     const file = path.join(PUBLIC, path.normalize(decodeURIComponent(url.pathname)));
@@ -120,4 +121,4 @@ server.listen(PORT, HOST, () => {
   console.log(`Samples are saved in ${process.env.MXO_DATA_DIR}`);
 });
 
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));
+['SIGINT', 'SIGTERM'].forEach((signal) => process.on(signal, () => server.close(() => process.exit(0))));

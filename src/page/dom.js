@@ -5,8 +5,8 @@ export const $ = (id) => document.getElementById(id);
 
 export function el(tag, attrs, parent) {
   const node = document.createElementNS(SVG_NS, tag);
-  for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, value);
-  if (parent) parent.appendChild(node);
+  Object.entries(attrs).forEach(([name, value]) => node.setAttribute(name, value));
+  if (parent) parent.append(node);
   return node;
 }
 
@@ -42,6 +42,6 @@ export function headCell(text) {
 
 export function tableRow(...cells) {
   const row = html('tr');
-  for (const text of cells) row.append(html('td', '', String(text)));
+  row.append(...cells.map((text) => html('td', '', String(text))));
   return row;
 }

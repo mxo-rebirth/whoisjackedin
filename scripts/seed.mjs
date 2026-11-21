@@ -18,7 +18,10 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const now = Date.now();
 let seed = 12345;
-const random = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+const random = () => {
+  seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+  return seed / 0x7fffffff;
+};
 
 // Each server has its own size and busiest hour.
 const level = SERVERS.map((_, i) => [3.2, 2.1, 1, 1.4][i % 4]);
@@ -51,7 +54,7 @@ for (let t = now - DAYS * DAY; t <= now; t += MINUTE) {
   if (finished) hours.set(finished.day, finished.hours);
   if (now - t < 9 * DAY) raw.set(dayOf(t), (raw.get(dayOf(t)) ?? '') + rawLine);
 }
-const file = (key) => path.join(dir, key.replace(/[^A-Za-z0-9._-]/g, '_'));
+const file = (key) => path.join(dir, key.replaceAll(/[^A-Za-z0-9._-]/g, '_'));
 for (const [day, text] of raw) await writeFile(file(rawKey(day)), text);
 for (const [day, data] of hours) await writeFile(file(hoursKey(day)), JSON.stringify(data));
 state.community = { triedAt: now, byId: {} };

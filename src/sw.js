@@ -1,6 +1,5 @@
-// Lets the site open as an app, and offline. It keeps the last public page and the built files, nothing else:
-// never the private version (it is sent as private, no-store), the numbers or anything else under /api/.
-// A new name clears what older versions of this file kept, piled-up script bundles included.
+// Lets the site open as an app and offline. It keeps the last public page and the built files, never anything
+// private or under /api/. A new cache name clears what older versions kept.
 const CACHE = 'whoisjackedin-v2';
 const PAGE = '/';
 
@@ -17,16 +16,22 @@ self.addEventListener('activate', (event) => {
 /** Only answers meant to be shared are kept. */
 const keepable = (res) => res.ok && !/no-store|private/.test(res.headers.get('cache-control') ?? '');
 
-/** Keeps a copy of the answer. With `replacing`, older kept files whose path matches are let go first. */
+/** Hands the answer on and keeps a copy of it. With `replacing`, older kept files whose path matches are let go first. */
 function keep(request, res, { replacing = null } = {}) {
-  if (keepable(res)) {
-    const copy = res.clone();
-    caches.open(CACHE).then(async (cache) => {
-      if (replacing) for (const old of await cache.keys()) if (replacing.test(new URL(old.url).pathname)) await cache.delete(old);
-      await cache.put(request, copy);
-    });
-  }
+  if (keepable(res)) store(request, res.clone(), replacing);
   return res;
+}
+
+function store(request, copy, replacing) {
+  caches.open(CACHE).then(async (cache) => {
+    if (replacing) await dropMatching(cache, replacing);
+    await cache.put(request, copy);
+  });
+}
+
+async function dropMatching(cache, pattern) {
+  const old = (await cache.keys()).filter((kept) => pattern.test(new URL(kept.url).pathname));
+  await Promise.all(old.map((kept) => cache.delete(kept)));
 }
 
 self.addEventListener('fetch', (event) => {

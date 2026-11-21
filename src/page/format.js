@@ -41,7 +41,6 @@ export const percent = (share) => {
 };
 
 /** Downtime in words, from how many checks were answered and how many of those found the server up. */
-
 export const downtime = (answered, online) => (answered === online ? 'no downtime' : `down for ${duration((answered - online) * stats.sampleSeconds * 1000)}`);
 
 export const ago = (t) => (stats.now - t < 90e3 ? 'just now' : `${duration(stats.now - t)} ago`);
@@ -57,7 +56,7 @@ export function duration(ms) {
 export function niceStep(raw, wholeNumbers) {
   const power = 10 ** Math.floor(Math.log10(raw));
   const scaled = raw / power;
-  const step = (scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10) * power;
+  const step = ([1, 2, 5].find((n) => scaled <= n) ?? 10) * power;
   return wholeNumbers ? Math.max(1, step) : step;
 }
 

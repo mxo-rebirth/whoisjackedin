@@ -1,12 +1,9 @@
 import { failed } from '../lib/auth.js';
+import { methodAllowed } from '../lib/request.js';
 import { RANGES, buildStats } from '../lib/stats.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('allow', 'GET');
-    res.status(405).end();
-    return;
-  }
+  if (!methodAllowed(req, res, ['GET'])) return;
   // Only ?range= and ?tz= are known, so made-up parameters cannot be used to dodge the cache.
   if (Object.keys(req.query ?? {}).some((name) => name !== 'range' && name !== 'tz')) {
     res.status(400).json({ error: 'unknown parameter' });

@@ -1,21 +1,17 @@
 // Visits: one line each for 90 days, and each finished day's totals kept for good.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, unlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
+import { useTempStore } from './support.mjs';
 
-const dir = await mkdtemp(path.join(tmpdir(), 'mxo-visits-'));
-process.env.MXO_DATA_DIR = dir;
-delete process.env.KV_REST_API_URL;
+const dir = await useTempStore('visits');
 const { dayTotals, keepDailyTotals, visitSummary } = await import('../lib/visits.js');
 const { write } = await import('../lib/store.js');
-after(() => rm(dir, { recursive: true, force: true }));
+const { DAY_MS: DAY, dayOf } = await import('../lib/time.js');
 
-const DAY = 86_400_000;
 const now = Date.UTC(2026, 10, 20, 12);
-const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
-const lines = ['10:01;DE;d;;aaaa', '10:20;DE;m;discord.com;bbbb', '11:05;GB;d;;aaaa'].join('\n') + '\n';
+const lines = `${['10:01;DE;d;;aaaa', '10:20;DE;m;discord.com;bbbb', '11:05;GB;d;;aaaa'].join('\n')}\n`;
 
 test('a day of visit lines adds up', () => {
   const totals = dayTotals(lines);
@@ -30,7 +26,7 @@ test('finished days keep their totals, and older days are read from them', async
   const before = dayOf(now - 2 * DAY);
   await write([{ set: [`mxo:visits:${yesterday}`, lines] }, { set: [`mxo:visits:${before}`, lines] }, { set: [`mxo:visits:${dayOf(now)}`, lines] }]);
   const ops = await keepDailyTotals(now);
-  assert.deepEqual(ops.map((op) => op.set[0]).sort(), [`mxo:visitday:${before}`, `mxo:visitday:${yesterday}`], 'both finished days, not today');
+  assert.deepEqual(ops.map((op) => op.set[0]).toSorted(), [`mxo:visitday:${before}`, `mxo:visitday:${yesterday}`], 'both finished days, not today');
   await write(ops);
   assert.equal((await keepDailyTotals(now)).length, 0, 'nothing more to save');
   // The lines of the day before yesterday expire, but its totals still count.

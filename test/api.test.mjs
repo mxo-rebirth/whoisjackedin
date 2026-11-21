@@ -1,21 +1,16 @@
 // The functions behind the site's addresses, called directly: who may read the visit numbers, which visits are
 // counted, and which methods are answered.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
+import { useTempStore } from './support.mjs';
 
-const dir = await mkdtemp(path.join(tmpdir(), 'mxo-api-'));
-process.env.MXO_DATA_DIR = dir;
-delete process.env.KV_REST_API_URL;
+await useTempStore('api');
 delete process.env.VERCEL;
 const { default: visitors } = await import('../api/visitors.js');
 const { default: hit } = await import('../api/hit.js');
 const { default: manifest } = await import('../api/manifest.js');
 const { mget } = await import('../lib/store.js');
 const { dayOf } = await import('../lib/time.js');
-after(() => rm(dir, { recursive: true, force: true }));
 
 /** A stand-in for the host's response object. */
 function response() {

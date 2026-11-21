@@ -1,19 +1,14 @@
 // The visit counter's limits: bots, one visitor within half an hour, one address per day, and a full day.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
+import { MINUTE, useTempStore } from './support.mjs';
 
-const dir = await mkdtemp(path.join(tmpdir(), 'mxo-visit-limits-'));
-process.env.MXO_DATA_DIR = dir;
-delete process.env.KV_REST_API_URL;
+await useTempStore('visit-limits');
 const { recordVisit } = await import('../lib/visits.js');
 const { write } = await import('../lib/store.js');
-after(() => rm(dir, { recursive: true, force: true }));
 
 const BROWSER = 'Mozilla/5.0 (Macintosh) Chrome/142';
-const at = (minutes) => Date.UTC(2026, 10, 20, 9) + minutes * 60_000;
+const at = (minutes) => Date.UTC(2026, 10, 20, 9) + minutes * MINUTE;
 const visit = (extra) => recordVisit({ ip: '203.0.113.7', agent: BROWSER, country: 'PL', referrer: '', host: 'example.org', secret: 's', now: at(0), ...extra });
 
 test('scripts and bots are not counted', async () => {

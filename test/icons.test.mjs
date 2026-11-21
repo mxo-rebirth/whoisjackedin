@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { inflateSync } from 'node:zlib';
-import { iconPng } from '../lib/icons.js';
+import { iconPng } from '../lib/helpers/icons.js';
 
 test('an icon is a PNG of the asked size, with clear corners unless it is maskable', () => {
   for (const maskable of [false, true]) {

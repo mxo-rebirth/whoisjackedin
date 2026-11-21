@@ -1,13 +1,10 @@
 // The page calls this once when it opens, so visits can be counted. See lib/visits.js for what is kept.
+import { methodAllowed } from '../lib/request.js';
 import { recordVisit } from '../lib/visits.js';
 
 export default async function handler(req, res) {
   res.setHeader('cache-control', 'no-store');
-  if (req.method !== 'POST') {
-    res.setHeader('allow', 'POST');
-    res.status(405).end();
-    return;
-  }
+  if (!methodAllowed(req, res, ['POST'])) return;
   // Only the page itself reports visits: a browser says where a request comes from, in two headers.
   // A script that does not is answered the same way, just not counted.
   let fromPage = false;

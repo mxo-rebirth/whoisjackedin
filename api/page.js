@@ -1,11 +1,10 @@
-// Serves the page with the current numbers already in it, cached for a minute. A request with the key
-// (see lib/cast.js) also gets the game art's script. Requests with the key's cookie reach this function by
-// their own rewrite, so the cached public page never answers them, and the private answer
-// is never cached, so it cannot reach anyone else.
+// The page with the current numbers in it, cached for a minute. A request with the key (lib/cast.js) gets the
+// private version, which comes by its own rewrite and is never cached, so it cannot reach anyone else.
 import { readFile } from 'node:fs/promises';
 import { castOf, withCast } from '../lib/cast.js';
 import { buildStats } from '../lib/stats.js';
 import { renderPage } from '../lib/page.js';
+import { methodAllowed } from '../lib/request.js';
 import { online, siteUrl } from '../lib/site.js';
 
 let template = null;
@@ -28,11 +27,7 @@ async function loadTemplate() {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.setHeader('allow', 'GET, HEAD');
-    res.status(405).end();
-    return;
-  }
+  if (!methodAllowed(req, res, ['GET', 'HEAD'])) return;
   let page;
   try {
     page = await loadTemplate();

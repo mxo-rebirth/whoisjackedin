@@ -47,7 +47,6 @@ addEventListener('storage', (event) => {
 });
 
 /** Today's calendar date in this time zone, as midnight UTC. Matches the days the server sends. */
-
 export const todayKey = () => {
   const now = new Date(stats.now);
   return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());

@@ -1,26 +1,18 @@
 // The sampler's rules: when a streak of bad answers becomes an outage, what is counted, and the records.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { after, test } from 'node:test';
+import { test } from 'node:test';
+import { MINUTE, roundOf, up, useTempStore } from './support.mjs';
 
-const dir = await mkdtemp(path.join(tmpdir(), 'mxo-test-'));
-process.env.MXO_DATA_DIR = dir;
-delete process.env.KV_REST_API_URL;
+await useTempStore('sampler');
 const { STATE_KEY, applySample, newState, rawKey } = await import('../lib/sampler.js');
 const { buildStats } = await import('../lib/stats.js');
 const { dayOf } = await import('../lib/time.js');
 const { SERVERS } = await import('../lib/sources.js');
 const { write } = await import('../lib/store.js');
-after(() => rm(dir, { recursive: true, force: true }));
 
-const MINUTE = 60_000;
-const up = (players) => ({ ok: true, online: true, players, checkedAt: null, details: [] });
 const down = { ok: true, online: false, players: 0, checkedAt: null, details: [{ label: 'Status', value: 'maintenance' }] };
 const silent = { ok: false, error: 'timeout' };
-/** One round of answers: the first server gets `first`, the others are up with one player each. */
-const round = (first) => SERVERS.map((_, i) => (i === 0 ? first : up(1)));
+const round = roundOf(SERVERS);
 const first = SERVERS[0];
 
 /** Runs answers for the first server, one a minute, from `start`. Returns the state and the saved lines. */
@@ -32,7 +24,7 @@ function run(answers, start = Date.UTC(2026, 10, 18, 10, 0)) {
 }
 
 test('a short streak of bad answers is a gap, not an outage, and the last count stands in', () => {
-  const { state, lines } = run([up(5), ...Array(5).fill(silent), up(6)]);
+  const { state, lines } = run([up(5), ...Array.from({ length: 5 }, () => silent), up(6)]);
   const all = state.all[first.id];
   assert.equal(all.outages.length, 0);
   assert.equal(all.gaps.length, 1);
@@ -42,7 +34,7 @@ test('a short streak of bad answers is a gap, not an outage, and the last count 
 });
 
 test('fifteen bad answers in a row make an outage, and the stand-in counts are taken back out', () => {
-  const { state } = run([up(5), ...Array(15).fill(silent), up(6)]);
+  const { state } = run([up(5), ...Array.from({ length: 15 }, () => silent), up(6)]);
   const all = state.all[first.id];
   assert.equal(all.outages.length, 1);
   assert.equal(all.outages[0].kind, 'unknown');
@@ -53,7 +45,7 @@ test('fifteen bad answers in a row make an outage, and the stand-in counts are t
 });
 
 test('a server that says it is down makes an "offline" outage', () => {
-  const { state } = run([up(2), ...Array(16).fill(down), up(2)]);
+  const { state } = run([up(2), ...Array.from({ length: 16 }, () => down), up(2)]);
   assert.equal(state.all[first.id].outages[0].kind, 'offline');
 });
 
@@ -66,7 +58,7 @@ test('records: the most on one server, and on all servers together', () => {
 test('the chart breaks inside a confirmed outage instead of showing the stand-in count', async () => {
   // Ends now, so the page does not go and take a live sample.
   const start = Math.floor((Date.now() - 59 * MINUTE) / MINUTE) * MINUTE; // all inside the last hour
-  const answers = [...Array(20).fill(up(4)), ...Array(20).fill(silent), ...Array(20).fill(up(4))];
+  const answers = [...Array.from({ length: 20 }, () => up(4)), ...Array.from({ length: 20 }, () => silent), ...Array.from({ length: 20 }, () => up(4))];
   const { state, lines } = run(answers, start);
   const byDay = new Map();
   lines.forEach((line) => {

@@ -71,7 +71,7 @@ export function startRain() {
     window.addEventListener('resize', resize);
     // With reduced motion, draw one still frame and stop.
     if (stillPage) {
-      for (let i = 0; i < 40; i++) step();
+      Array.from({ length: 40 }).forEach(() => step());
       return;
     }
     let timer = setInterval(step, 75);

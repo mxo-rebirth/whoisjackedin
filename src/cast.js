@@ -7,7 +7,7 @@ const key = new URL(document.currentScript.src).searchParams.get('k');
 useKey(key);
 {
   const here = new URL(location.href);
-  if (/^\/hl-/i.test(here.pathname)) history.replaceState(null, '', '/' + here.search + here.hash);
+  if (/^\/hl-/i.test(here.pathname)) history.replaceState(null, '', `/${here.search}${here.hash}`);
 }
 
 const $ = (id) => document.getElementById(id);
@@ -43,23 +43,23 @@ const ICONS = {
   Outages: 'impaired_connection',
   'The servers': 'disc_hacker',
 };
-for (const heading of document.querySelectorAll('h2')) {
+document.querySelectorAll('h2').forEach((heading) => {
   const icon = ICONS[heading.querySelector('.title')?.textContent.trim()];
-  if (!icon) continue;
+  if (!icon) return;
   const picture = html('img', 'glyph');
   Object.assign(picture, { alt: '', width: 32, height: 32, src: `/api/model?f=${encodeURIComponent(`icon/${icon}.png`)}&k=${encodeURIComponent(key)}` });
   heading.prepend(picture);
-}
+});
 
 // A face from the game for each server. Decoration only: the servers are not tied to these sides.
 const FACES = { rejacked: ['lotus', ''], revived: ['general', ''], mxoemu: ['chessman', ''], openmxo: ['weaver', ''] };
 
 /** The page redraws its cards and footer when new numbers arrive, so the faces and art credit go back on each time. */
 function dress() {
-  for (const head of document.querySelectorAll('.server-head[data-server]')) {
+  document.querySelectorAll('.server-head[data-server]').forEach((head) => {
     const face = FACES[head.dataset.server];
     if (face && !head.querySelector('.face')) head.prepend(bust(...face));
-  }
+  });
   const notes = $('footer');
   if (notes?.children.length && !notes.querySelector('[data-credit]')) {
     const credit = html('p', '', 'the icons and faces come from the game and belong to its owners');
@@ -119,7 +119,9 @@ const answer = (word) => {
   const emote = ALSO[word] ?? word;
   if (word === 'help' || word === '?') {
     // Asking for help lays out every command, ready to click.
-    for (const button of listed) button.hidden = false;
+    listed.forEach((button) => {
+      button.hidden = false;
+    });
     return HELP;
   }
   if (!Object.hasOwn(SAID, emote)) return `Unknown command /${word}. Try /help`;
@@ -132,7 +134,7 @@ form.addEventListener('submit', (event) => {
   if (word) reply.textContent = answer(word);
 });
 // Every command can also be clicked. Only /help shows until it is asked for.
-for (const name of ['help', ...Object.keys(SAID)]) {
+['help', ...Object.keys(SAID)].forEach((name) => {
   const button = html('button', 'pill', `/${name}`);
   button.type = 'button';
   button.addEventListener('click', () => (reply.textContent = answer(name)));
@@ -141,7 +143,7 @@ for (const name of ['help', ...Object.keys(SAID)]) {
     listed.push(button);
   }
   commands.append(button);
-}
+});
 // Shown only once he is there to answer.
 figureReady('flood').then((there) => {
   panel.hidden = !there;

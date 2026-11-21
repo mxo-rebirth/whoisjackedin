@@ -34,6 +34,7 @@ npm install
 npm start        # http://127.0.0.1:5177, readings saved under data/kv
 npm test         # run npm run build first for the server tests
 npm run lint
+npm run dupes    # copied code, none allowed
 ```
 
 With made-up history:
