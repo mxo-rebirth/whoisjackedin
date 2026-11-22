@@ -1,18 +1,20 @@
 // Prints the site's visit numbers. Run "npm run visitors", or "npm run visitors -- 365" for a year.
-// It reads CRON_SECRET from .env.local and never prints it.
+// It reads READ_SECRET from .env.local and never prints it.
 import { localEnv, siteUrl } from '../lib/site.js';
 
 const days = Number.parseInt(process.argv[2], 10) || 30;
 const env = await localEnv();
-const secret = env.CRON_SECRET;
+const secret = env.READ_SECRET;
 if (!secret || !env.MXO_SITE) {
-  console.error('Put CRON_SECRET and MXO_SITE (the live address) in .env.local.');
+  console.error('Put READ_SECRET and MXO_SITE (the live address) in .env.local.');
   process.exit(1);
 }
 const site = siteUrl(env);
 const res = await fetch(`${site}/api/visitors?days=${days}`, { headers: { authorization: `Bearer ${secret}` } });
 if (!res.ok) {
-  console.error(`The site answered ${res.status}.`);
+  // The site gives the same 401 for a wrong key and a missing one, so both causes are named.
+  const hint = res.status === 401 ? ' READ_SECRET may be missing on the host, or differ from the one in .env.local.' : '';
+  console.error(`The site answered ${res.status}.${hint}`);
   process.exit(1);
 }
 const data = await res.json();

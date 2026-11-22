@@ -40,8 +40,8 @@ Server files:
 | `lib/store.js` | The Redis database online and plain files locally, behind the same functions |
 | `lib/status.js` | Deciding whether a server is up, down or unknown |
 | `lib/site.js` | The site's own address (`siteUrl()`). The domain is written nowhere else. |
-| `lib/auth.js` | `isOwner()` and `failed()` |
-| `lib/request.js` | The checks every function makes first: `methodAllowed()` and `ownerAllowed()` |
+| `lib/auth.js` | `holdsKey()` and `failed()` |
+| `lib/request.js` | The checks every function makes first: `methodAllowed()` and `keyAllowed()` |
 | `lib/html.js` | `escapeHtml` |
 | `lib/rewrite.js` | Applying the address and header rules from `vercel.json` on the local server |
 | `lib/helpers/pattern.js` | Reading a rule's source into a regular expression |
@@ -234,7 +234,7 @@ Rules:
 - Only known query parameters are accepted. An unknown one gets an error, so nobody can create extra cached copies with it.
 - Check keys with `Object.hasOwn(RANGES, range)`, never with `in`
 - Status pages are refused when they are too large (`FEED_MAX_BYTES`)
-- Owner-only endpoints call `isOwner(req)` first and answer 401 without it
+- Owner-only endpoints call `keyAllowed(req, res, name)` first with their own key, `CRON_SECRET` for the job and `READ_SECRET` for the visit numbers, and answer 401 without it
 - Errors go through `failed()`: the visitor sees a short, general message and the details go to the log
 
 ## Caching

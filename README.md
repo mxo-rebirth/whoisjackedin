@@ -53,12 +53,13 @@ npm run restore -- /tmp/mxo-archive
 MXO_DATA_DIR=/tmp/mxo-archive MXO_NO_TIMER=1 npm start
 ```
 
-`PORT` and `HOST` are supported. `npm run visitors` reads `CRON_SECRET` and `MXO_SITE` (the live address) from `.env.local`. `npm run restore` and `npm run archive-check` read the `ARCHIVE_*` settings from it.
+`PORT` and `HOST` are supported. `npm run visitors` reads `READ_SECRET` and `MXO_SITE` (the live address) from `.env.local`. `npm run restore` and `npm run archive-check` read the `ARCHIVE_*` settings from it.
 
 ## Deployment
 
-1. Deploy the folder with a Redis REST database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and random `CRON_SECRET` and `VISIT_SECRET` values
+1. Deploy the folder with a Redis REST database (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) and random `CRON_SECRET`, `READ_SECRET` and `VISIT_SECRET` values
 2. Call `https://<your-site>/api/collect` every minute with `Authorization: Bearer <CRON_SECRET>`
+3. Read the visit numbers from `https://<your-site>/api/visitors?days=30` with `Authorization: Bearer <READ_SECRET>`
 
 The page's own address comes from the host's production domain, or from `MXO_SITE` if set.
 
