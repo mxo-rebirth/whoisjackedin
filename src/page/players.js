@@ -85,7 +85,7 @@ export function shownWindow() {
 }
 
 /**
- * Joins the saved steps so the chart draws about ninety points at most. Zooming in brings the detail back.
+ * Joins the saved steps into about ninety points. Zoomed in, a step holds from 45 to 180 points, so the shape stays.
  * Each step is { start, end, mean, peak }, with one entry per server, null where nothing is known.
  */
 export function joinSteps() {
@@ -93,7 +93,9 @@ export function joinSteps() {
   const view = shownWindow();
   // The finest choice is the saved step itself.
   const fits = [bucketMs, ...STEP_WIDTHS.filter((size) => size > bucketMs && size % bucketMs === 0)];
-  const width = fits.find((size) => (view.to - view.from) / size <= 90) ?? fits.at(-1);
+  const span = view.to - view.from;
+  const keep = isZoomed() && fits.includes(stepMs) && span / stepMs >= 45 && span / stepMs <= 180;
+  const width = keep ? stepMs : (fits.find((size) => span / size <= 90) ?? fits.at(-1));
   // Joined steps start on local clock times, so a day-wide step is a local day.
   const shift = -new Date().getTimezoneOffset() * MINUTE;
   const joined = [];
@@ -174,17 +176,68 @@ export function playersTip(t) {
   );
 }
 
-/** Zoom by dragging across the chart. Touch is left alone so the page can still scroll. */
-export function wirePlayers(chart, node) {
+/** A new step reshapes the lines, so the old picture fades out over them. Animating the lines pairs wrong points. */
+function renderZoomed() {
+  const node = $('players-chart');
+  // The peaks and live dots sit on a layer of their own.
+  const layers = [...node.querySelectorAll('canvas')];
+  if (stillPage || !layers.length) {
+    renderPlayers();
+    return;
+  }
+  const copy = document.createElement('canvas');
+  copy.width = layers[0].width;
+  copy.height = layers[0].height;
+  layers.forEach((layer) => copy.getContext('2d').drawImage(layer, 0, 0));
+  Object.assign(copy.style, { position: 'absolute', pointerEvents: 'none', left: `${node.offsetLeft}px`, top: `${node.offsetTop}px`, width: `${node.clientWidth}px`, height: `${node.clientHeight}px` });
+  node.after(copy);
+  try {
+    renderPlayers();
+  } finally {
+    copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: 'ease-out' }).finished.finally(() => copy.remove());
+  }
+}
+
+/** A redraw mid-gesture would reshape the lines under the pointer. A pinch ends when its last finger lifts. */
+function redrawWhenZoomStops(chart, node) {
+  const down = new Set();
+  let owed = false;
+  const redraw = () => {
+    owed = false;
+    renderZoomed();
+  };
   chart.on('datazoom', (event) => {
     const { start, end } = event.batch?.[0] ?? event;
     if (typeof start !== 'number' || typeof end !== 'number') return;
     zoom = { start, end };
     renderPlayersHead();
-    // Once zooming stops, redraw so the scale and the detail fit what is on show.
     clearTimeout(settle);
-    settle = setTimeout(renderPlayers, 180);
+    owed = true;
+    if (!down.size) settle = setTimeout(redraw, 300);
   });
+  node.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    down.add(event.pointerId);
+    clearTimeout(settle);
+  }, true);
+  const letGo = (event) => {
+    down.delete(event.pointerId);
+    if (!down.size && owed) redraw();
+  };
+  addEventListener('pointerup', letGo);
+  addEventListener('pointercancel', letGo);
+  // A context menu or leaving the window can swallow the pointerup.
+  const forget = () => {
+    down.clear();
+    if (owed) redraw();
+  };
+  node.addEventListener('contextmenu', forget);
+  addEventListener('blur', forget);
+}
+
+/** Zoom by dragging across the chart. Touch is left alone so the page can still scroll. */
+export function wirePlayers(chart, node) {
+  redrawWhenZoomStops(chart, node);
 
   const box = $('zoom-box');
   let drag = null;
