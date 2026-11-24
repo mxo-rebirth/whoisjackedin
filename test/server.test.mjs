@@ -40,9 +40,8 @@ only('the page comes with its numbers and the security headers from the settings
   const page = await res.text();
   assert.match(page, /id="boot">\{"now":/);
   assert.ok(!page.includes('api/model'), 'the public page has no trace of the private part');
-  assert.match(page, /github\.com\/mxo-rebirth\/whoisjackedin"/, 'the code link is always there');
-  assert.ok(!page.includes('mxo-apple-silicon'), 'the macOS guide link appears only with ?links');
-  assert.match(await (await get('/?links')).text(), /github\.com\/mxo-rebirth\/mxo-apple-silicon/);
+  assert.match(page, /github\.com\/mxo-rebirth\/whoisjackedin"/, 'the code link is there');
+  assert.match(page, /github\.com\/mxo-rebirth\/mxo-apple-silicon"/, 'the macOS guide link is there');
 });
 
 only('the private link, its cookie, and switching it off', async () => {

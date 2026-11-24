@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
   let body = page;
   try {
-    body = renderPage(page, await buildStats('24h', 0), { links: req.query?.links !== undefined, analytics: online() });
+    body = renderPage(page, await buildStats('24h', 0), { analytics: online() });
   } catch (err) {
     // Without numbers the page still works: its script fetches them.
     console.error(err);
