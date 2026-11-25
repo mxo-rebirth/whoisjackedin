@@ -1,6 +1,17 @@
 # Who is jacked in: MxO Server Stats
 
-Live player counts for The Matrix Online community servers.
+> [!WARNING]
+> This site is independent. It is not run by any server project and does not speak for one. It reads their public status pages, so a number is only as right as the page it comes from.
+>
+> Its links lead to the servers' own sites, Discords, clients and downloads. It cannot promise that they are safe, and takes no responsibility for any damage they may cause. If you install one, you do so at your own risk.
+
+Live player counts for The Matrix Online community servers: MxO Rejacked, MxO Revived, MxOEmu and openMXO. Live at [whoisjackedin.com](https://whoisjackedin.com).
+
+To play on a Mac, see [mxo-apple-silicon](https://github.com/mxo-rebirth/mxo-apple-silicon).
+
+![The site in dark mode: 17 players online across four servers, the 24-hour and all-time peaks, and a card per server with its players and peaks](docs/screenshot.jpg)
+
+Players online now, per server and together.
 
 ## Features
 
@@ -11,6 +22,10 @@ Live player counts for The Matrix Online community servers.
 - Dark and light themes, green or blue
 - Installable as a PWA, works offline
 - `?range=` (`1h`, `24h`, `7d`, `30d`, `all`) opens a time range, `?gaps` lists short status-page blips
+
+![The player history chart over 7 days: one line per server, each with its peak marked, and a zoom bar below](docs/chart.jpg)
+
+Seven days of players, each server's peak marked.
 
 ## Data
 
